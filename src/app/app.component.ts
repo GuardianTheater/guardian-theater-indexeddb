@@ -4,9 +4,7 @@ import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service';
 import { HttpClient } from '@angular/common/http';
 import { getMembershipDataForCurrentUser } from 'bungie-api-ts/user';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { NgxIndexedDBService } from 'ngx-indexed-db';
 import { DestinyPostGameCarnageReportData } from 'bungie-api-ts/destiny2';
-import { debounceTime } from 'rxjs/operators';
 import { StateService } from './state/state.service';
 import { TwitchVideo } from './queue/twitch-queue.service';
 
@@ -26,21 +24,22 @@ export class AppComponent implements OnInit {
     private authBungie: BungieAuthService,
     private authTwitch: TwitchAuthService,
     private http: HttpClient,
-    private dbService: NgxIndexedDBService,
     private state: StateService
   ) {}
 
   ngOnInit() {
     this.instanceSet = new Set();
-    this.state.instancesWithClips$.subscribe((instances: DestinyPostGameCarnageReportData[]) => {
+    this.state.instancesWithClips$?.subscribe((instances: DestinyPostGameCarnageReportData[]) => {
       for (const instance of instances) {
-        for (const entry of instance.entries) {
-          (entry as any).twitchClips.subscribe((clips: TwitchVideo[]) => {
-            if (clips.length) {
-              this.instanceSet.add(instance);
-              this.instances = Array.from(this.instanceSet);
-            }
-          });
+        if (instance?.entries) {
+          for (const entry of instance?.entries) {
+            (entry as any).twitchClips.subscribe((clips: TwitchVideo[]) => {
+              if (clips.length) {
+                this.instanceSet.add(instance);
+                this.instances = Array.from(this.instanceSet);
+              }
+            });
+          }
         }
       }
     });
@@ -52,21 +51,6 @@ export class AppComponent implements OnInit {
     //   }
     // });
     // this.loadPgcrs();
-  }
-
-  async loadPgcrs() {
-    this.dbService.getAll('pgcrs').then((pgcrs: { instanceId: string; period: string; response: DestinyPostGameCarnageReportData }[]) => {
-      this.pgcrs$.next(pgcrs.sort((a, b) => parseInt(b.instanceId, 0) - parseInt(a.instanceId, 0)));
-      for (const pgcr of pgcrs) {
-        for (const entry of pgcr.response.entries) {
-          this.dbService.getByKey('twitchAccounts', entry.player.destinyUserInfo.membershipId).then((res) => {
-            for (const account of res?.accounts) {
-              this.dbService.getByKey('twitchVideos', account?.id).then((r) => console.log(r));
-            }
-          });
-        }
-      }
-    });
   }
 
   loginBungie() {

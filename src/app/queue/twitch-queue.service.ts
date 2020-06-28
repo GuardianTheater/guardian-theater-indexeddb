@@ -1,37 +1,52 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NgxIndexedDBService } from 'ngx-indexed-db';
 import { debounceTime, take } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TwitchQueueService {
-  queue$ = new BehaviorSubject<{ action: 'getUsers' | 'getVideos'; behaviorSubject: BehaviorSubject<any>; payload: any }[]>([]);
+  queue$ = new BehaviorSubject<{
+    [action: string]: {
+      behaviorSubject: BehaviorSubject<any>;
+      payload: any;
+    }[];
+  }>({
+    getVideos: [],
+    getUsers: [],
+  });
+  actionPriority = ['getVideos', 'getUsers'];
 
-  constructor(private http: HttpClient, private dbService: NgxIndexedDBService) {
-    this.queue$.pipe(debounceTime(75)).subscribe((queue) => {
-      if (queue.length) {
-        const nextAction = queue.shift();
-        this.queue$.next(queue);
-        switch (nextAction.action) {
-          case 'getUsers':
-            this.processGetUsers(nextAction.behaviorSubject, nextAction.payload);
-            break;
-          case 'getVideos':
-            this.processGetVideos(nextAction.behaviorSubject, nextAction.payload);
-            break;
-          default:
-            console.error('invalid action');
-            break;
+  constructor(private http: HttpClient) {
+    this.queue$.pipe(debounceTime(75)).subscribe((queueDict) => {
+      for (const action of this.actionPriority) {
+        const queue = queueDict[action];
+        if (queue.length) {
+          const nextAction = queue.shift();
+          this.queue$.next(queueDict);
+          switch (action) {
+            case 'getUsers':
+              this.processGetUsers(nextAction.behaviorSubject, nextAction.payload);
+              break;
+            case 'getVideos':
+              this.processGetVideos(nextAction.behaviorSubject, nextAction.payload);
+              break;
+            default:
+              console.error('invalid action');
+              break;
+          }
+          break;
         }
       }
     });
   }
 
   addToQueue(action: 'getUsers' | 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: {}) {
-    this.queue$.pipe(take(1)).subscribe((queue) => this.queue$.next([...queue, { action, behaviorSubject, payload }]));
+    this.queue$.pipe(take(1)).subscribe((queue) => {
+      queue[action] = [...queue[action], { behaviorSubject, payload }];
+      this.queue$.next(queue);
+    });
   }
 
   processGetUsers(behaviorSubject: BehaviorSubject<any>, names: string[]) {
