@@ -6,7 +6,8 @@ import { getMembershipDataForCurrentUser } from 'bungie-api-ts/user';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { DestinyPostGameCarnageReportData } from 'bungie-api-ts/destiny2';
 import { StateService } from './state/state.service';
-import { TwitchVideo } from './queue/twitch-queue.service';
+import { TwitchVideo, TwitchQueueService } from './queue/twitch-queue.service';
+import { BungieQueueService } from './queue/bungie-queue.service';
 
 @Component({
   selector: 'app-root',
@@ -19,38 +20,35 @@ export class AppComponent implements OnInit {
   instancesWithClips$: Observable<any>;
   instanceSet: Set<DestinyPostGameCarnageReportData>;
   instances: DestinyPostGameCarnageReportData[];
+  queueCount: {
+    [queue: string]: {
+      [action: string]: {
+        queued: number;
+        completed: number;
+        errors: number;
+      };
+    };
+  } = {};
+  authState = {
+    bungie: false,
+    twitch: false,
+  };
 
   constructor(
     private authBungie: BungieAuthService,
     private authTwitch: TwitchAuthService,
     private http: HttpClient,
-    private state: StateService
+    public state: StateService,
+    private twitchQueue: TwitchQueueService,
+    private bungieQueue: BungieQueueService
   ) {}
 
   ngOnInit() {
     this.instanceSet = new Set();
-    this.state.instancesWithClips$?.subscribe((instances: DestinyPostGameCarnageReportData[]) => {
-      for (const instance of instances) {
-        if (instance?.entries) {
-          for (const entry of instance?.entries) {
-            (entry as any).twitchClips.subscribe((clips: TwitchVideo[]) => {
-              if (clips.length) {
-                this.instanceSet.add(instance);
-                this.instances = Array.from(this.instanceSet);
-              }
-            });
-          }
-        }
-      }
-    });
-    // this.state.instancesWithClips$.pipe().subscribe((instances) => {
-    //   for (const instance of instances) {
-    //     for (const entry of instance.entries) {
-    //       entry.twitchClips.subscribe((res) => console.log(entry, res));
-    //     }
-    //   }
-    // });
-    // this.loadPgcrs();
+    this.queueCount.twitch = this.twitchQueue.queueCount;
+    this.queueCount.bungie = this.bungieQueue.queueCount;
+    this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res));
+    this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res));
   }
 
   loginBungie() {

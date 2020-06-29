@@ -3,7 +3,18 @@ import { BungieAuthService } from '../auth/bungie-auth/bungie-auth.service';
 import { TwitchAuthService } from '../auth/twitch-auth/twitch-auth.service';
 import { Observable, EMPTY, BehaviorSubject, combineLatest, of, from, forkJoin } from 'rxjs';
 import { UserMembershipData, getMembershipDataForCurrentUser, ServerResponse } from 'bungie-api-ts/user';
-import { switchMap, map, take, debounceTime } from 'rxjs/operators';
+import {
+  switchMap,
+  map,
+  take,
+  debounceTime,
+  flatMap,
+  distinctUntilChanged,
+  filter,
+  withLatestFrom,
+  debounce,
+  takeUntil,
+} from 'rxjs/operators';
 import { BungieQueueService } from '../queue/bungie-queue.service';
 import {
   DestinyProfileResponse,
@@ -20,6 +31,7 @@ import {
   getLinkedProfiles,
   DestinyLinkedProfilesResponse,
   GetLinkedProfilesParams,
+  DestinyHistoricalStatsPeriodGroup,
 } from 'bungie-api-ts/destiny2';
 import { NgxIndexedDBService } from 'ngx-indexed-db';
 import { TwitchQueueService, TwitchAccount, TwitchVideo } from '../queue/twitch-queue.service';
@@ -28,9 +40,11 @@ import { TwitchQueueService, TwitchAccount, TwitchVideo } from '../queue/twitch-
   providedIn: 'root',
 })
 export class StateService {
-  private bungieCurrentUser$: Observable<ServerResponse<UserMembershipData>>;
-  private bungieProfiles$: Observable<BehaviorSubject<ServerResponse<DestinyProfileResponse>>[]>;
-  private bungieActivityHistories$: Observable<Observable<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[]>[]>;
+  private bungieCurrentUser$: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(undefined);
+  private bungieProfiles$: BehaviorSubject<BehaviorSubject<ServerResponse<DestinyProfileResponse>>[]> = new BehaviorSubject(undefined);
+  private bungieActivityHistories$: BehaviorSubject<
+    Observable<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[]>[]
+  > = new BehaviorSubject(undefined);
 
   private instanceIdSet = new Set();
   private membershipNamesSet = new Set();
@@ -79,9 +93,7 @@ export class StateService {
   // bungieProfiles: {
   //   [key: string]: DestinyProfileResponse;
   // } = {};
-  instances: DestinyPostGameCarnageReportData[] = [];
-  instances$: BehaviorSubject<DestinyPostGameCarnageReportData[]> = new BehaviorSubject([]);
-  instancesWithClips$: Observable<any>;
+  instancesWithClips$: BehaviorSubject<any> = new BehaviorSubject([]);
 
   // membershipNames: {
   //   [key: string]: BehaviorSubject<string[]>;
@@ -94,291 +106,310 @@ export class StateService {
     private twitchQueue: TwitchQueueService,
     private dbService: NgxIndexedDBService
   ) {
-    this.populateStateFromDb().subscribe((dbState) => {
-      console.log(dbState);
-      this.bungieCurrentUser$ = this.bungieAuth.hasValidAccessToken$.pipe(
-        switchMap((valid) => {
-          if (valid) {
-            const action = getMembershipDataForCurrentUser;
-            const behaviorSubject: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(undefined);
-            this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, behaviorSubject);
-            return behaviorSubject;
-          } else {
-            return EMPTY;
-          }
-        })
-      );
-
-      this.bungieProfiles$ = this.bungieCurrentUser$.pipe(
-        switchMap((user) => {
-          if (user?.Response) {
-            // this.bungieCurrentUser = user.Response;
-            const destinyProfileResponses: BehaviorSubject<ServerResponse<DestinyProfileResponse>>[] = [];
-
-            // for (const profile of user?.Response?.destinyMemberships) {
-            //   const action = getProfile;
-            //   const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined);
-            //   destinyProfileResponses.push(behaviorSubject);
-            //   const { membershipId, membershipType } = profile;
-            //   const params: GetProfileParams = {
-            //     destinyMembershipId: membershipId,
-            //     membershipType,
-            //     components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
-            //   };
-            //   this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params);
-            // }
-            const action = getProfile;
-            const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined);
-            destinyProfileResponses.push(behaviorSubject);
-            const params: GetProfileParams = {
-              destinyMembershipId: '4611686018438442802',
-              membershipType: 1,
-              components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
-            };
-            this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params);
-            return of(destinyProfileResponses);
-          } else {
-            return EMPTY;
-          }
-        })
-      );
-
-      this.bungieActivityHistories$ = this.bungieProfiles$.pipe(
-        switchMap((profiles) => {
-          if (profiles.length) {
-            const activityHistories: Observable<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[]>[] = [];
-            for (const profile$ of profiles) {
-              const activityHistory$ = profile$.pipe(
-                switchMap((profile) => {
-                  if (profile?.Response) {
-                    // this.bungieProfiles[profile?.Response?.profile?.data?.userInfo?.membershipId] = profile?.Response;
-                    const destinyActivityHistoryResults: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[] = [];
-
-                    const characters = profile?.Response?.characters?.data;
-                    for (const characterId in characters) {
-                      if (characters[characterId]) {
-                        const action = getActivityHistory;
-                        const behaviorSubject: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>> = new BehaviorSubject(
-                          undefined
-                        );
-                        destinyActivityHistoryResults.push(behaviorSubject);
-                        const params: GetActivityHistoryParams = {
-                          characterId,
-                          count: 250,
-                          destinyMembershipId: profile?.Response?.profile?.data?.userInfo?.membershipId,
-                          membershipType: profile?.Response?.profile?.data?.userInfo?.membershipType,
-                          mode: DestinyActivityModeType.None,
-                          page: 0,
-                        };
-                        this.bungieQueue.addToQueue('getActivityHistory', action, behaviorSubject, params);
-                      }
-                    }
-                    return of(destinyActivityHistoryResults);
-                  } else {
-                    return EMPTY;
-                  }
-                })
-              );
-              activityHistories.push(activityHistory$);
+    this.populateStateFromDb().subscribe(() => {
+      this.bungieAuth.hasValidAccessToken$
+        .pipe(
+          distinctUntilChanged(),
+          switchMap((valid) => {
+            if (valid) {
+              const action = getMembershipDataForCurrentUser;
+              const behaviorSubject: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(undefined);
+              this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, behaviorSubject);
+              return behaviorSubject;
+            } else {
+              return EMPTY;
             }
-            return of(activityHistories);
-          } else {
-            return EMPTY;
-          }
-        })
-      );
+          })
+        )
+        .subscribe((res) => this.bungieCurrentUser$.next(res));
+
+      this.bungieCurrentUser$
+        .pipe(
+          switchMap((user) => {
+            if (user?.Response) {
+              // this.bungieCurrentUser = user.Response;
+              const destinyProfileResponses: BehaviorSubject<ServerResponse<DestinyProfileResponse>>[] = [];
+
+              for (const profile of user?.Response?.destinyMemberships) {
+                const action = getProfile;
+                const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined);
+                destinyProfileResponses.push(behaviorSubject);
+                const { membershipId, membershipType } = profile;
+                const params: GetProfileParams = {
+                  destinyMembershipId: membershipId,
+                  membershipType,
+                  components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
+                };
+                this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params);
+              }
+              // const action = getProfile;
+              // const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined);
+              // destinyProfileResponses.push(behaviorSubject);
+              // const params: GetProfileParams = {
+              //   destinyMembershipId: '4611686018438442802',
+              //   membershipType: 1,
+              //   components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
+              // };
+              // this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params);
+              return of(destinyProfileResponses);
+            } else {
+              return EMPTY;
+            }
+          })
+        )
+        .subscribe((res) => this.bungieProfiles$.next(res));
+
+      this.bungieProfiles$
+        .pipe(
+          switchMap((profiles) => {
+            if (profiles?.length) {
+              const activityHistories: Observable<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[]>[] = [];
+              for (const profile$ of profiles) {
+                const activityHistory$ = profile$.pipe(
+                  switchMap((profile) => {
+                    if (profile?.Response) {
+                      // this.bungieProfiles[profile?.Response?.profile?.data?.userInfo?.membershipId] = profile?.Response;
+                      const destinyActivityHistoryResults: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>[] = [];
+
+                      const characters = profile?.Response?.characters?.data;
+                      for (const characterId in characters) {
+                        if (characters[characterId]) {
+                          const action = getActivityHistory;
+                          const behaviorSubject: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>> = new BehaviorSubject(
+                            undefined
+                          );
+                          destinyActivityHistoryResults.push(behaviorSubject);
+                          const params: GetActivityHistoryParams = {
+                            characterId,
+                            count: 250,
+                            destinyMembershipId: profile?.Response?.profile?.data?.userInfo?.membershipId,
+                            membershipType: profile?.Response?.profile?.data?.userInfo?.membershipType,
+                            mode: DestinyActivityModeType.None,
+                            page: 0,
+                          };
+                          this.bungieQueue.addToQueue('getActivityHistory', action, behaviorSubject, params);
+                        }
+                      }
+                      return of(destinyActivityHistoryResults);
+                    } else {
+                      return EMPTY;
+                    }
+                  })
+                );
+                activityHistories.push(activityHistory$);
+              }
+              return of(activityHistories);
+            } else {
+              return EMPTY;
+            }
+          })
+        )
+        .subscribe((res) => this.bungieActivityHistories$.next(res));
 
       this.bungieActivityHistories$.subscribe((profiles) => {
-        for (const profile of profiles) {
-          profile?.subscribe((characters) => {
-            for (const character of characters) {
-              character?.subscribe((history) => {
-                if (history?.Response?.activities) {
-                  for (const activity of history?.Response?.activities) {
-                    const instanceId = activity?.activityDetails?.instanceId;
-                    const period = new Date(activity?.period);
-                    const offset = new Date(new Date().setDate(new Date().getDate() - 45));
-                    if (!this.instanceIdSet.has(instanceId) && period > offset) {
-                      this.instanceIdSet.add(instanceId);
-                      this.pgcrsDbState
-                        .pipe(
-                          take(1),
-                          map((pgcrsDbState) => pgcrsDbState[instanceId] || {}),
-                          switchMap((pgcrsDbEntry: { instanceId: string; period: string; response: string }) => {
-                            if (pgcrsDbEntry?.response) {
-                              return of(JSON.parse(pgcrsDbEntry.response));
-                            } else {
-                              const action = getPostGameCarnageReport;
-                              const behaviorSubject: BehaviorSubject<ServerResponse<
-                                DestinyPostGameCarnageReportData
-                              >> = new BehaviorSubject(undefined);
-                              const params: GetPostGameCarnageReportParams = { activityId: instanceId };
-                              this.bungieQueue.addToQueue('getPostGameCarnageReport', action, behaviorSubject, params);
-                              return behaviorSubject.pipe(
-                                map((res) => {
-                                  if (res?.Response?.activityDetails?.instanceId) {
-                                    pgcrsDbEntry = {
-                                      instanceId: res?.Response?.activityDetails?.instanceId,
-                                      period: res?.Response?.period,
-                                      response: JSON.stringify(res?.Response),
-                                    };
-                                    this.pgcrsDbState.pipe(take(1)).subscribe((pgcrsDbState) => {
-                                      pgcrsDbState[instanceId] = pgcrsDbEntry;
-                                      this.pgcrsDbState.next(pgcrsDbState);
-                                    });
-                                    this.dbService.update('pgcrs', pgcrsDbEntry);
-                                    if (res?.Response) {
-                                      return res?.Response;
-                                    } else {
-                                      return EMPTY;
-                                    }
-                                  }
-                                })
-                              );
-                            }
-                          })
-                        )
-                        .subscribe((pgcr: DestinyPostGameCarnageReportData) => {
-                          this.instances.push(pgcr);
-                          this.instances$.next(this.instances);
-
-                          if (pgcr?.entries?.length) {
-                            for (const entry of pgcr?.entries) {
-                              const membershipId = entry?.player?.destinyUserInfo?.membershipId;
-
-                              this.lastEncounteredDbState
-                                .pipe(
-                                  take(1),
-                                  map((lastEncounteredDbState) => lastEncounteredDbState[membershipId]),
-                                  map((lastEncounteredDbEntry: { membershipId: string; period: string }) => {
-                                    if (
-                                      !lastEncounteredDbEntry ||
-                                      !lastEncounteredDbEntry.period ||
-                                      new Date(pgcr?.period) > new Date(lastEncounteredDbEntry.period)
-                                    ) {
-                                      lastEncounteredDbEntry = {
-                                        membershipId,
-                                        period: new Date(pgcr?.period).toISOString(),
+        if (profiles) {
+          for (const profile of profiles) {
+            profile?.subscribe((characters) => {
+              for (const character of characters) {
+                character?.subscribe((history) => {
+                  if (history?.Response?.activities) {
+                    for (const activity of history?.Response?.activities) {
+                      const instanceId = activity?.activityDetails?.instanceId;
+                      const period = new Date(activity?.period);
+                      const offset = new Date(new Date().setDate(new Date().getDate() - 60));
+                      if (!this.instanceIdSet.has(instanceId) && period > offset) {
+                        this.instanceIdSet.add(instanceId);
+                        this.pgcrsDbState
+                          .pipe(
+                            map((pgcrsDbState) => {
+                              if (pgcrsDbState[instanceId]) {
+                                return pgcrsDbState[instanceId];
+                              } else {
+                                return undefined;
+                              }
+                            }),
+                            distinctUntilChanged(),
+                            switchMap((pgcrsDbEntry: { instanceId: string; period: string; response: string }) => {
+                              if (pgcrsDbEntry?.response) {
+                                return of(JSON.parse(pgcrsDbEntry.response));
+                              } else {
+                                const action = getPostGameCarnageReport;
+                                const behaviorSubject: BehaviorSubject<ServerResponse<
+                                  DestinyPostGameCarnageReportData
+                                >> = new BehaviorSubject(undefined);
+                                const params: GetPostGameCarnageReportParams = { activityId: instanceId };
+                                this.bungieQueue.addToQueue('getPostGameCarnageReport', action, behaviorSubject, params);
+                                return behaviorSubject.pipe(
+                                  map((res) => {
+                                    if (res?.Response?.activityDetails?.instanceId) {
+                                      pgcrsDbEntry = {
+                                        instanceId: res?.Response?.activityDetails?.instanceId,
+                                        period: res?.Response?.period,
+                                        response: JSON.stringify(res?.Response),
                                       };
-                                      this.lastEncounteredDbState.pipe(take(1)).subscribe((lastEncounteredDbState) => {
-                                        lastEncounteredDbState[membershipId] = lastEncounteredDbEntry;
-                                        this.lastEncounteredDbState.next(lastEncounteredDbState);
+                                      this.pgcrsDbState.pipe(take(1)).subscribe((pgcrsDbState) => {
+                                        pgcrsDbState[instanceId] = pgcrsDbEntry;
+                                        this.pgcrsDbState.next(pgcrsDbState);
                                       });
-                                      this.dbService.update('lastEncountered', lastEncounteredDbEntry);
+                                      this.dbService.update('pgcrs', pgcrsDbEntry);
+                                      if (res?.Response) {
+                                        return res?.Response;
+                                      } else {
+                                        return EMPTY;
+                                      }
                                     }
                                   })
-                                )
-                                .subscribe();
+                                );
+                              }
+                            })
+                          )
+                          .subscribe((pgcr: DestinyPostGameCarnageReportData) => {
+                            if (pgcr?.entries?.length) {
+                              for (const entry of pgcr?.entries) {
+                                const membershipId = entry?.player?.destinyUserInfo?.membershipId;
 
-                              if (!this.membershipNamesSet.has(membershipId)) {
-                                this.membershipNamesSet.add(membershipId);
-                                this.namesDbState
+                                this.lastEncounteredDbState
                                   .pipe(
                                     take(1),
-                                    map((namesDbState) => namesDbState[membershipId] || {}),
-                                    switchMap((namesDbEntry: { membershipId: string; names: string[] }) => {
-                                      if (namesDbEntry?.names?.length) {
-                                        if (namesDbEntry?.names.indexOf(entry?.player?.destinyUserInfo?.displayName) < 0) {
-                                          namesDbEntry?.names.push(entry?.player?.destinyUserInfo?.displayName);
-                                          this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
-                                            namesDbState[membershipId] = namesDbEntry;
-                                            this.namesDbState.next(namesDbState);
-                                          });
-                                          this.dbService.update('names', namesDbEntry);
-                                        }
-                                        return of(namesDbEntry?.names || []);
-                                      } else if (membershipId && entry?.player?.destinyUserInfo?.membershipType) {
-                                        const action = getLinkedProfiles;
-                                        const behaviorSubject: BehaviorSubject<ServerResponse<
-                                          DestinyLinkedProfilesResponse
-                                        >> = new BehaviorSubject(undefined);
-                                        const params: GetLinkedProfilesParams = {
-                                          getAllMemberships: true,
-                                          membershipId,
-                                          membershipType: entry?.player?.destinyUserInfo?.membershipType,
-                                        };
-                                        this.bungieQueue.addToQueue('getLinkedProfiles', action, behaviorSubject, params);
-                                        return behaviorSubject.pipe(
-                                          map((res) => {
-                                            if (res?.Response) {
-                                              const nameSet = new Set();
-                                              nameSet.add(res?.Response?.bnetMembership?.displayName);
-                                              if (res?.Response?.profiles) {
-                                                for (const prof of res?.Response?.profiles) {
-                                                  nameSet.add(prof?.displayName);
-                                                }
-                                              }
-                                              if (res?.Response?.profilesWithErrors) {
-                                                for (const prof of res?.Response?.profilesWithErrors) {
-                                                  nameSet.add(prof?.infoCard?.displayName);
-                                                }
-                                              }
-                                              const names = Array.from(nameSet) as string[];
-                                              namesDbEntry = {
-                                                membershipId,
-                                                names,
-                                              };
-                                              this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
-                                                namesDbState[membershipId] = namesDbEntry;
-                                                this.namesDbState.next(namesDbState);
-                                              });
-                                              this.dbService.update('names', namesDbEntry);
-                                              return names;
-                                            } else {
-                                              return [];
-                                            }
-                                          })
-                                        );
+                                    map((lastEncounteredDbState) => {
+                                      if (lastEncounteredDbState[membershipId]) {
+                                        return lastEncounteredDbState[membershipId];
                                       } else {
-                                        return of([]);
+                                        return undefined;
                                       }
                                     }),
-                                    map((names) => {
-                                      this.nameQueue$.pipe(take(1)).subscribe((queue) =>
-                                        this.nameQueue$.next([
-                                          ...queue,
-                                          {
-                                            membershipId,
-                                            names,
-                                          },
-                                        ])
-                                      );
+                                    map((lastEncounteredDbEntry: { membershipId: string; period: string }) => {
+                                      if (
+                                        !lastEncounteredDbEntry ||
+                                        !lastEncounteredDbEntry.period ||
+                                        new Date(pgcr?.period) > new Date(lastEncounteredDbEntry.period)
+                                      ) {
+                                        lastEncounteredDbEntry = {
+                                          membershipId,
+                                          period: new Date(pgcr?.period).toISOString(),
+                                        };
+                                        this.lastEncounteredDbState.pipe(take(1)).subscribe((lastEncounteredDbState) => {
+                                          lastEncounteredDbState[membershipId] = lastEncounteredDbEntry;
+                                          this.lastEncounteredDbState.next(lastEncounteredDbState);
+                                        });
+                                        this.dbService.update('lastEncountered', lastEncounteredDbEntry);
+                                      }
                                     })
                                   )
                                   .subscribe();
 
-                                this.twitchAccountsDbState
-                                  .pipe(
-                                    map((twitchAccountsDbState) => twitchAccountsDbState[membershipId]),
-                                    map((twitchAccountsDbEntry) => {
-                                      if (twitchAccountsDbEntry?.accounts) {
-                                        for (const account of twitchAccountsDbEntry?.accounts) {
-                                          if (account?.id) {
-                                            combineLatest([
-                                              this.twitchVideosDbState.pipe(
-                                                map((twitchVideosDbState) => {
-                                                  if (account && account.id && twitchVideosDbState && twitchVideosDbState[account.id]) {
-                                                    return twitchVideosDbState[account.id];
+                                if (!this.membershipNamesSet.has(membershipId)) {
+                                  this.membershipNamesSet.add(membershipId);
+                                  this.namesDbState
+                                    .pipe(
+                                      take(1),
+                                      map((namesDbState) => namesDbState[membershipId] || {}),
+                                      switchMap((namesDbEntry: { membershipId: string; names: string[] }) => {
+                                        if (namesDbEntry?.names?.length) {
+                                          if (namesDbEntry?.names.indexOf(entry?.player?.destinyUserInfo?.displayName) < 0) {
+                                            namesDbEntry?.names.push(entry?.player?.destinyUserInfo?.displayName);
+                                            this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
+                                              namesDbState[membershipId] = namesDbEntry;
+                                              this.namesDbState.next(namesDbState);
+                                            });
+                                            this.dbService.update('names', namesDbEntry);
+                                          }
+                                          return of(namesDbEntry?.names || []);
+                                        } else if (membershipId && entry?.player?.destinyUserInfo?.membershipType) {
+                                          const action = getLinkedProfiles;
+                                          const behaviorSubject: BehaviorSubject<ServerResponse<
+                                            DestinyLinkedProfilesResponse
+                                          >> = new BehaviorSubject(undefined);
+                                          const params: GetLinkedProfilesParams = {
+                                            getAllMemberships: true,
+                                            membershipId,
+                                            membershipType: entry?.player?.destinyUserInfo?.membershipType,
+                                          };
+                                          this.bungieQueue.addToQueue('getLinkedProfiles', action, behaviorSubject, params);
+                                          return behaviorSubject.pipe(
+                                            map((res) => {
+                                              if (res?.Response) {
+                                                const nameSet = new Set();
+                                                nameSet.add(res?.Response?.bnetMembership?.displayName);
+                                                if (res?.Response?.profiles) {
+                                                  for (const prof of res?.Response?.profiles) {
+                                                    nameSet.add(prof?.displayName);
                                                   }
-                                                  return {};
-                                                })
-                                              ),
-                                              this.lastEncounteredDbState.pipe(
-                                                map((lastEncounteredDbState) => {
-                                                  if (lastEncounteredDbState && lastEncounteredDbState[membershipId]) {
-                                                    return lastEncounteredDbState[membershipId];
+                                                }
+                                                if (res?.Response?.profilesWithErrors) {
+                                                  for (const prof of res?.Response?.profilesWithErrors) {
+                                                    nameSet.add(prof?.infoCard?.displayName);
                                                   }
-                                                  return {};
-                                                })
-                                              ),
-                                            ])
-                                              .pipe(
-                                                take(1),
-                                                map(
-                                                  ([twitchVideosDbEntry, lastEncounteredDbEntry]: [
-                                                    { videos: TwitchVideo[]; twitchId: string; updated: string },
-                                                    { membershipId: string; period: string }
-                                                  ]) => {
+                                                }
+                                                const names = Array.from(nameSet) as string[];
+                                                namesDbEntry = {
+                                                  membershipId,
+                                                  names,
+                                                };
+                                                this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
+                                                  namesDbState[membershipId] = namesDbEntry;
+                                                  this.namesDbState.next(namesDbState);
+                                                });
+                                                this.dbService.update('names', namesDbEntry);
+                                                return names;
+                                              } else {
+                                                return [];
+                                              }
+                                            })
+                                          );
+                                        } else {
+                                          return of([]);
+                                        }
+                                      }),
+                                      map((names) => {
+                                        this.nameQueue$.pipe(take(1)).subscribe((queue) =>
+                                          this.nameQueue$.next([
+                                            ...queue,
+                                            {
+                                              membershipId,
+                                              names,
+                                            },
+                                          ])
+                                        );
+                                      })
+                                    )
+                                    .subscribe();
+
+                                  this.twitchAccountsDbState
+                                    .pipe(
+                                      map((twitchAccountsDbState) => {
+                                        if (twitchAccountsDbState[membershipId]) {
+                                          return twitchAccountsDbState[membershipId];
+                                        } else {
+                                          return undefined;
+                                        }
+                                      }),
+                                      filter((twitchAccountsDbEntry) => twitchAccountsDbEntry !== undefined),
+                                      distinctUntilChanged(),
+                                      map((twitchAccountsDbEntry) => {
+                                        if (twitchAccountsDbEntry?.accounts) {
+                                          for (const account of twitchAccountsDbEntry?.accounts) {
+                                            if (account?.id) {
+                                              this.twitchVideosDbState
+                                                .pipe(
+                                                  map((twitchVideosDbState) => {
+                                                    if (account && account.id && twitchVideosDbState && twitchVideosDbState[account.id]) {
+                                                      return twitchVideosDbState[account.id];
+                                                    }
+                                                    return undefined;
+                                                  }),
+                                                  distinctUntilChanged(),
+                                                  withLatestFrom(
+                                                    this.lastEncounteredDbState.pipe(
+                                                      map((lastEncounteredDbState) => {
+                                                        if (lastEncounteredDbState && lastEncounteredDbState[membershipId]) {
+                                                          return lastEncounteredDbState[membershipId];
+                                                        }
+                                                        return undefined;
+                                                      })
+                                                    )
+                                                  ),
+                                                  map(([twitchVideosDbEntry, lastEncounteredDbEntry]) => {
                                                     const oneHourAgo = new Date(new Date().setHours(new Date().getHours() - 1));
                                                     const oneDayAgo = new Date(new Date().setDate(new Date().getDate() - 1));
                                                     if (
@@ -394,6 +425,10 @@ export class StateService {
                                                       const behaviorSubject = new BehaviorSubject(undefined);
                                                       const payload = account;
                                                       this.twitchQueue.addToQueue(action, behaviorSubject, payload);
+                                                      this.twitchVideosDbState.pipe(take(1)).subscribe((twitchVideosDbState) => {
+                                                        twitchVideosDbState[account.id] = twitchVideosDbEntry;
+                                                        this.twitchVideosDbState.next(twitchVideosDbState);
+                                                      });
                                                       behaviorSubject.subscribe(
                                                         (res: { data: TwitchVideo[]; pagination: { cursor: string } }) => {
                                                           if (res?.data) {
@@ -412,26 +447,38 @@ export class StateService {
                                                         }
                                                       );
                                                     }
-                                                  }
+                                                    if (!twitchVideosDbEntry) {
+                                                      const updated = new Date().toISOString();
+                                                      twitchVideosDbEntry = {
+                                                        videos: [],
+                                                        twitchId: account.id,
+                                                        updated,
+                                                      };
+                                                      this.twitchVideosDbState.pipe(take(1)).subscribe((twitchVideosDbState) => {
+                                                        twitchVideosDbState[account.id] = twitchVideosDbEntry;
+                                                        this.twitchVideosDbState.next(twitchVideosDbState);
+                                                      });
+                                                    }
+                                                  })
                                                 )
-                                              )
-                                              .subscribe();
+                                                .subscribe();
+                                            }
                                           }
                                         }
-                                      }
-                                    })
-                                  )
-                                  .subscribe();
+                                      })
+                                    )
+                                    .subscribe();
+                                }
                               }
                             }
-                          }
-                        });
+                          });
+                      }
                     }
                   }
-                }
-              });
-            }
-          });
+                });
+              }
+            });
+          }
         }
       });
 
@@ -509,7 +556,7 @@ export class StateService {
                                       accounts,
                                     };
                                     this.twitchAccountsDbState.pipe(take(1)).subscribe((twitchAccountsDbState) => {
-                                      twitchAccountsDbEntry[membershipId] = twitchAccountsDbEntry;
+                                      twitchAccountsDbState[membershipId] = twitchAccountsDbEntry;
                                       this.twitchAccountsDbState.next(twitchAccountsDbState);
                                     });
                                     this.dbService.update('twitchAccounts', twitchAccountsDbEntry);
@@ -528,120 +575,160 @@ export class StateService {
           })
         )
         .subscribe();
-    });
 
-    this.instancesWithClips$ = this.instances$.pipe(
-      debounceTime(100),
-      map((instances) => {
-        console.log(instances);
-        for (const instance of instances) {
-          if (instance) {
-            if (instance?.entries?.length) {
-              for (const entry of instance?.entries) {
-                let entryStart = new Date(instance.period);
-                if (entry?.values?.startSeconds?.basic?.value) {
-                  entryStart = new Date(
-                    new Date(instance.period).setSeconds(new Date(instance.period).getSeconds() + entry?.values?.startSeconds?.basic?.value)
-                  );
-                }
-                let entryStop = new Date(instance.period);
-                if (entry?.values?.activityDurationSeconds?.basic?.value) {
-                  entryStop = new Date(
-                    new Date(instance.period).setSeconds(
-                      new Date(instance.period).getSeconds() + entry?.values?.activityDurationSeconds?.basic?.value
-                    )
-                  );
-                }
-                const twitchClips = this.twitchAccountsDbState.pipe(
-                  map((twitchAccountsDbState) => twitchAccountsDbState[entry?.player?.destinyUserInfo?.membershipId] || {}),
-                  switchMap((twitchAccountsDbEntry: { membershipId: string; accounts: TwitchAccount[] }) => {
-                    const twitchVideosDbEntries = [];
-                    if (twitchAccountsDbEntry?.accounts?.length) {
-                      for (const account of twitchAccountsDbEntry?.accounts) {
-                        twitchVideosDbEntries.push(
-                          this.twitchVideosDbState.pipe((twitchVideosDbState) => {
-                            if (twitchVideosDbState && twitchVideosDbState[account.id]) {
-                              return twitchVideosDbState[account.id];
-                            }
-                            return {};
-                          })
-                        );
-                      }
-                      return combineLatest(twitchVideosDbEntries);
-                    } else {
-                      return of([]);
-                    }
-                  }),
-                  map(
-                    (
-                      twitchVideosDbEntries: {
-                        videos: TwitchVideo[];
-                        twitchId: string;
-                        updated: string;
-                      }[]
-                    ) => {
-                      const videos: TwitchVideo[] = [];
-                      for (const twitchVideosDbEntry of twitchVideosDbEntries) {
-                        if (twitchVideosDbEntry?.videos) {
-                          for (const video of twitchVideosDbEntry?.videos) {
-                            const videoStart = new Date(video.created_at);
-                            let rawDuration = video.duration;
-                            const hourSplit = rawDuration.split('h');
-                            let hours = 0;
-                            let minutes = 0;
-                            let seconds = 0;
-                            if (hourSplit.length > 1) {
-                              hours = parseInt(hourSplit[0], 10);
-                              rawDuration = hourSplit[1];
-                            }
-                            const minuteSplit = rawDuration.split('m');
-                            if (minuteSplit.length > 1) {
-                              minutes = parseInt(minuteSplit[0], 10);
-                              rawDuration = minuteSplit[1];
-                            }
-                            const secondSplit = rawDuration.split('s');
-                            if (secondSplit.length) {
-                              seconds = parseInt(secondSplit[0], 10);
-                            }
-                            const duration = seconds + minutes * 60 + hours * 60 * 60;
-                            const videoStop = new Date(
-                              new Date(video.created_at).setSeconds(new Date(video.created_at).getSeconds() + duration)
-                            );
-                            if (videoStart < entryStop && videoStop > entryStart) {
-                              const offset = Math.floor((entryStart.getTime() - videoStart.getTime()) / 1000);
-                              let secondsOffset = offset;
-                              const hoursOffset = Math.floor(secondsOffset / 60 / 60);
-                              secondsOffset -= hoursOffset * 60 * 60;
-                              const minutesOffset = Math.floor(secondsOffset / 60);
-                              secondsOffset -= minutesOffset * 60;
-                              let twitchOffset = '';
-                              if (hoursOffset) {
-                                twitchOffset += `${hoursOffset}h`;
-                              }
-                              if (minutesOffset) {
-                                twitchOffset += `${minutesOffset}m`;
-                              }
-                              if (secondsOffset) {
-                                twitchOffset += `${secondsOffset}s`;
-                              }
-                              const videoWithOffset = { ...video, offset: twitchOffset };
-                              videos.push(videoWithOffset);
-                            }
-                          }
-                        }
-                      }
-                      return videos;
-                    }
-                  )
-                );
-                // (entry as any).twitchClips = twitchClips;
+      combineLatest([
+        this.bungieActivityHistories$.pipe(
+          flatMap((activityHistories) => activityHistories || EMPTY),
+          flatMap((activityHistories) => activityHistories || EMPTY),
+          switchMap((activityHistories) => combineLatest(activityHistories) || EMPTY)
+        ),
+        this.pgcrsDbState,
+      ])
+        .pipe(
+          debounceTime(100),
+          map(([serverResponses, pgcrsDbState]) => {
+            let instances: DestinyHistoricalStatsPeriodGroup[] = [];
+            for (const res of serverResponses) {
+              if (res?.Response?.activities) {
+                instances = [...instances, ...res?.Response?.activities];
               }
             }
-          }
-        }
-        return instances;
-      })
-    );
+            const pgcrs = [];
+            for (const instance of instances) {
+              try {
+                const pgcr = JSON.parse(pgcrsDbState[instance?.activityDetails?.instanceId]?.response) as DestinyPostGameCarnageReportData;
+                if (pgcr) {
+                  if (pgcr?.entries?.length) {
+                    const twitchClipsArray: Observable<TwitchVideo[]>[] = [];
+                    for (const entry of pgcr?.entries) {
+                      let entryStart = new Date(pgcr.period);
+                      if (entry?.values?.startSeconds?.basic?.value) {
+                        entryStart = new Date(
+                          new Date(pgcr.period).setSeconds(new Date(pgcr.period).getSeconds() + entry?.values?.startSeconds?.basic?.value)
+                        );
+                      }
+                      let entryStop = new Date(pgcr.period);
+                      if (entry?.values?.activityDurationSeconds?.basic?.value) {
+                        entryStop = new Date(
+                          new Date(pgcr.period).setSeconds(
+                            new Date(pgcr.period).getSeconds() + entry?.values?.activityDurationSeconds?.basic?.value
+                          )
+                        );
+                      }
+                      const twitchClips = this.twitchAccountsDbState.pipe(
+                        map((twitchAccountsDbState) => {
+                          if (entry?.player?.destinyUserInfo?.membershipId) {
+                            return twitchAccountsDbState[entry?.player?.destinyUserInfo?.membershipId];
+                          } else {
+                            return EMPTY;
+                          }
+                        }),
+                        switchMap((twitchAccountsDbEntry: { membershipId: string; accounts: TwitchAccount[] }) => {
+                          const twitchVideosDbEntries = [];
+                          if (twitchAccountsDbEntry?.accounts?.length) {
+                            for (const account of twitchAccountsDbEntry?.accounts) {
+                              twitchVideosDbEntries.push(
+                                this.twitchVideosDbState.pipe(
+                                  map((twitchVideosDbState) => {
+                                    if (twitchVideosDbState && twitchVideosDbState[account.id]) {
+                                      return twitchVideosDbState[account.id];
+                                    }
+                                    return undefined;
+                                  })
+                                )
+                              );
+                            }
+                            return combineLatest(twitchVideosDbEntries);
+                          } else {
+                            return of([]);
+                          }
+                        }),
+                        map(
+                          (
+                            twitchVideosDbEntries: {
+                              videos: TwitchVideo[];
+                              twitchId: string;
+                              updated: string;
+                            }[]
+                          ) => {
+                            const videos: TwitchVideo[] = [];
+                            for (const twitchVideosDbEntry of twitchVideosDbEntries) {
+                              if (twitchVideosDbEntry?.videos) {
+                                for (const video of twitchVideosDbEntry?.videos) {
+                                  const videoStart = new Date(video.created_at);
+                                  let rawDuration = video.duration;
+                                  const hourSplit = rawDuration.split('h');
+                                  let hours = 0;
+                                  let minutes = 0;
+                                  let seconds = 0;
+                                  if (hourSplit.length > 1) {
+                                    hours = parseInt(hourSplit[0], 10);
+                                    rawDuration = hourSplit[1];
+                                  }
+                                  const minuteSplit = rawDuration.split('m');
+                                  if (minuteSplit.length > 1) {
+                                    minutes = parseInt(minuteSplit[0], 10);
+                                    rawDuration = minuteSplit[1];
+                                  }
+                                  const secondSplit = rawDuration.split('s');
+                                  if (secondSplit.length) {
+                                    seconds = parseInt(secondSplit[0], 10);
+                                  }
+                                  const duration = seconds + minutes * 60 + hours * 60 * 60;
+                                  const videoStop = new Date(
+                                    new Date(video.created_at).setSeconds(new Date(video.created_at).getSeconds() + duration)
+                                  );
+                                  if (videoStart < entryStop && videoStop > entryStart) {
+                                    const offset = Math.floor((entryStart.getTime() - videoStart.getTime()) / 1000);
+                                    let secondsOffset = offset;
+                                    const hoursOffset = Math.floor(secondsOffset / 60 / 60);
+                                    secondsOffset -= hoursOffset * 60 * 60;
+                                    const minutesOffset = Math.floor(secondsOffset / 60);
+                                    secondsOffset -= minutesOffset * 60;
+                                    let twitchOffset = '';
+                                    if (hoursOffset) {
+                                      twitchOffset += `${hoursOffset}h`;
+                                    }
+                                    if (minutesOffset) {
+                                      twitchOffset += `${minutesOffset}m`;
+                                    }
+                                    if (secondsOffset) {
+                                      twitchOffset += `${secondsOffset}s`;
+                                    }
+                                    const videoWithOffset = { ...video, offset: twitchOffset };
+                                    videos.push(videoWithOffset);
+                                  }
+                                }
+                              }
+                            }
+                            return videos;
+                          }
+                        )
+                      );
+                      twitchClipsArray.push(twitchClips);
+                      (entry as any).twitchClips = twitchClips;
+                    }
+                    (pgcr as any).twitchClips = combineLatest(twitchClipsArray).pipe(
+                      map((twitchClips) => {
+                        const clips: TwitchVideo[] = [];
+                        for (const c of twitchClips) {
+                          for (const twitchClip of c) {
+                            clips.push(twitchClip);
+                          }
+                        }
+                        return clips;
+                      })
+                    );
+                  }
+                }
+                pgcrs.push(pgcr);
+              } catch (e) {}
+            }
+            this.instancesWithClips$.next(pgcrs);
+          })
+        )
+        .subscribe();
+    });
   }
 
   populateStateFromDb() {

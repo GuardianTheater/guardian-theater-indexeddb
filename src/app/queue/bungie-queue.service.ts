@@ -23,6 +23,33 @@ export class BungieQueueService {
     getPostGameCarnageReport: [],
   });
   actionPriority = ['getMembershipDataForCurrentUser', 'getLinkedProfiles', 'getProfile', 'getActivityHistory', 'getPostGameCarnageReport'];
+  queueCount = {
+    getMembershipDataForCurrentUser: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+    getLinkedProfiles: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+    getProfile: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+    getActivityHistory: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+    getPostGameCarnageReport: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+  };
 
   constructor(private http: HttpClient) {
     this.queue$.pipe(debounceTime(100)).subscribe((queueDict) => {
@@ -50,8 +77,14 @@ export class BungieQueueService {
                   .toPromise(),
               nextAction.params
             )
-            .then((res) => nextAction.behaviorSubject.next(res))
-            .catch((e) => nextAction.behaviorSubject.next(e));
+            .then((res) => {
+              nextAction.behaviorSubject.next(res);
+              this.queueCount[action].completed++;
+            })
+            .catch((e) => {
+              nextAction.behaviorSubject.next(e);
+              this.queueCount[action].errors++;
+            });
           break;
         }
       }
@@ -62,6 +95,7 @@ export class BungieQueueService {
     this.queue$.pipe(take(1)).subscribe((queue) => {
       queue[action] = [...queue[action], { actionFunction, behaviorSubject, params }];
       this.queue$.next(queue);
+      this.queueCount[action].queued++;
     });
   }
 }

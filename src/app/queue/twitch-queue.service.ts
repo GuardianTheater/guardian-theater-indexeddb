@@ -18,6 +18,19 @@ export class TwitchQueueService {
   });
   actionPriority = ['getVideos', 'getUsers'];
 
+  queueCount = {
+    getUsers: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+    getVideos: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+    },
+  };
+
   constructor(private http: HttpClient) {
     this.queue$.pipe(debounceTime(75)).subscribe((queueDict) => {
       for (const action of this.actionPriority) {
@@ -42,10 +55,26 @@ export class TwitchQueueService {
     });
   }
 
-  addToQueue(action: 'getUsers' | 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: {}) {
+  addToQueue(action: 'getUsers' | 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: any) {
     this.queue$.pipe(take(1)).subscribe((queue) => {
-      queue[action] = [...queue[action], { behaviorSubject, payload }];
-      this.queue$.next(queue);
+      let alreadyInQueue = false;
+      let noNames = false;
+      if (action === 'getVideos') {
+        const queueSet = new Set(queue[action].map((act) => (act.payload as TwitchAccount).id));
+        if (queueSet.has((payload as TwitchAccount).id)) {
+          alreadyInQueue = true;
+        }
+      }
+      if (action === 'getUsers') {
+        if (!payload.length) {
+          noNames = true;
+        }
+      }
+      if (!alreadyInQueue && !noNames) {
+        queue[action] = [...queue[action], { behaviorSubject, payload }];
+        this.queue$.next(queue);
+        this.queueCount[action].queued++;
+      }
     });
   }
 
@@ -57,6 +86,7 @@ export class TwitchQueueService {
       }
       this.http.get(url).subscribe((res: { data: TwitchAccount[] }) => {
         behaviorSubject.next(res);
+        this.queueCount.getUsers.completed++;
       });
     }
   }
@@ -71,6 +101,7 @@ export class TwitchQueueService {
       })
       .subscribe((res: { data: TwitchVideo[]; pagination: { cursor: string } }) => {
         behaviorSubject.next(res);
+        this.queueCount.getVideos.completed++;
       });
   }
 }
