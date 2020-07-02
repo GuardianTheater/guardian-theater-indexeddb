@@ -418,8 +418,10 @@ export class StateService {
                                                       !lastEncounteredDbEntry ||
                                                       !lastEncounteredDbEntry.period ||
                                                       new Date(lastEncounteredDbEntry.period) > new Date(twitchVideosDbEntry.updated) ||
-                                                      (new Date(twitchVideosDbEntry.updated) > oneDayAgo &&
-                                                        new Date(twitchVideosDbEntry.updated) < oneHourAgo)
+                                                      (new Date(twitchVideosDbEntry.updated) < oneHourAgo &&
+                                                        new Date(twitchVideosDbEntry.updated).getDate() -
+                                                          new Date(lastEncounteredDbEntry.period).getDate() <
+                                                          1)
                                                     ) {
                                                       const action = 'getVideos';
                                                       const behaviorSubject = new BehaviorSubject(undefined);
@@ -492,7 +494,7 @@ export class StateService {
                 names: string[];
               }[] = [];
               const payload: string[] = [];
-              const prefixes = ['twitch.tv/', 't.tv/', 'twitch/', '_twitch', 'twitch_', 'twitch', 'ttv/', '[ttv]', '_ttv', 'ttv_', 'ttv'];
+              const prefixes = ['twitchtv', 'twitch', 'ttv', 'tv'];
               while (queue.length && payload.length < 101) {
                 const membership = queue.shift();
                 if (membership?.names?.length) {
@@ -593,7 +595,7 @@ export class StateService {
                 instances = [...instances, ...res?.Response?.activities];
               }
             }
-            const pgcrs = [];
+            const pgcrs: DestinyPostGameCarnageReportData[] = [];
             for (const instance of instances) {
               try {
                 const pgcr = JSON.parse(pgcrsDbState[instance?.activityDetails?.instanceId]?.response) as DestinyPostGameCarnageReportData;
@@ -724,6 +726,7 @@ export class StateService {
                 pgcrs.push(pgcr);
               } catch (e) {}
             }
+            pgcrs.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10));
             this.instancesWithClips$.next(pgcrs);
           })
         )

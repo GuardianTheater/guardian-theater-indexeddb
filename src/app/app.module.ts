@@ -1,5 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
+import { FlexLayoutModule } from '@angular/flex-layout';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -13,15 +14,19 @@ import { NgxIndexedDBModule } from 'ngx-indexed-db';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { MatCardModule } from '@angular/material/card';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { ManifestPipe } from './manifest/manifest.pipe';
+import { TwitchPipe } from './pipes/twitch.pipe';
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, ManifestPipe, TwitchPipe],
   imports: [
     HttpClientModule,
     BrowserModule,
     AppRoutingModule,
     BungieAuthModule,
     TwitchAuthModule,
+    FlexLayoutModule,
     NgxIndexedDBModule.forRoot({
       name: 'GtDb',
       version: 1,
@@ -159,6 +164,7 @@ import { MatCardModule } from '@angular/material/card';
     }),
     BrowserAnimationsModule,
     MatCardModule,
+    MatProgressBarModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

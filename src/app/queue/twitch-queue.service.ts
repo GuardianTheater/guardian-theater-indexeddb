@@ -37,16 +37,23 @@ export class TwitchQueueService {
         const queue = queueDict[action];
         if (queue.length) {
           const nextAction = queue.shift();
-          this.queue$.next(queueDict);
           switch (action) {
             case 'getUsers':
               this.processGetUsers(nextAction.behaviorSubject, nextAction.payload);
+              while (queue.length > 0 && nextAction.payload.length + queue[0].payload.length <= 100) {
+                const next = queue.shift();
+                this.queueCount.getUsers.queued--;
+                nextAction.payload = [...nextAction.payload, next.payload];
+              }
+              this.queue$.next(queueDict);
               break;
             case 'getVideos':
               this.processGetVideos(nextAction.behaviorSubject, nextAction.payload);
+              this.queue$.next(queueDict);
               break;
             default:
               console.error('invalid action');
+              this.queue$.next(queueDict);
               break;
           }
           break;
@@ -134,4 +141,5 @@ export interface TwitchVideo {
   type: string;
   duration: string;
   offset?: string;
+  play?: boolean;
 }
