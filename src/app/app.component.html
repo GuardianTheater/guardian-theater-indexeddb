@@ -155,19 +155,19 @@
                 instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
               }}</mat-card-subtitle>
             </mat-card-header>
+            <img *ngIf="!video.play" mat-card-image [src]="video | twitch: 'thumbnail'" (click)="video.play = true" />
+            <iframe
+              *ngIf="video.play"
+              mat-card-image
+              class="twitch-embed"
+              [src]="video | twitch: 'embedUrl'"
+              frameborder="0"
+              scrolling="no"
+              allowfullscreen="true"
+            >
+            </iframe>
             <mat-card-content>
               <div>
-                <img *ngIf="!video.play" mat-card-image [src]="video | twitch: 'thumbnail'" (click)="video.play = true" />
-                <iframe
-                  *ngIf="video.play"
-                  mat-card-image
-                  class="twitch-embed"
-                  [src]="video | twitch: 'embedUrl'"
-                  frameborder="0"
-                  scrolling="no"
-                  allowfullscreen="true"
-                >
-                </iframe>
                 <span>{{ entry?.player?.destinyUserInfo?.displayName }} {{ video?.url }} {{ video?.offset }}</span>
               </div>
             </mat-card-content>

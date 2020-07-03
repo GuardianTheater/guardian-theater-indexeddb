@@ -411,7 +411,6 @@ export class StateService {
                                                   ),
                                                   map(([twitchVideosDbEntry, lastEncounteredDbEntry]) => {
                                                     const oneHourAgo = new Date(new Date().setHours(new Date().getHours() - 1));
-                                                    const oneDayAgo = new Date(new Date().setDate(new Date().getDate() - 1));
                                                     if (
                                                       !twitchVideosDbEntry ||
                                                       !twitchVideosDbEntry.updated ||
