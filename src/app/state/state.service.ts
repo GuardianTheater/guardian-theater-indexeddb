@@ -2,7 +2,13 @@ import { Injectable } from '@angular/core';
 import { BungieAuthService } from '../auth/bungie-auth/bungie-auth.service';
 import { TwitchAuthService } from '../auth/twitch-auth/twitch-auth.service';
 import { Observable, EMPTY, BehaviorSubject, combineLatest, of, from, forkJoin } from 'rxjs';
-import { UserMembershipData, getMembershipDataForCurrentUser, ServerResponse } from 'bungie-api-ts/user';
+import {
+  UserMembershipData,
+  getMembershipDataForCurrentUser,
+  ServerResponse,
+  getMembershipDataById,
+  GetMembershipDataByIdParams,
+} from 'bungie-api-ts/user';
 import {
   switchMap,
   map,
@@ -28,9 +34,6 @@ import {
   DestinyPostGameCarnageReportData,
   getPostGameCarnageReport,
   GetPostGameCarnageReportParams,
-  getLinkedProfiles,
-  DestinyLinkedProfilesResponse,
-  GetLinkedProfilesParams,
   DestinyHistoricalStatsPeriodGroup,
 } from 'bungie-api-ts/destiny2';
 import { NgxIndexedDBService } from 'ngx-indexed-db';
@@ -316,31 +319,34 @@ export class StateService {
                                           }
                                           return of(namesDbEntry?.names || []);
                                         } else if (membershipId && entry?.player?.destinyUserInfo?.membershipType) {
-                                          const action = getLinkedProfiles;
-                                          const behaviorSubject: BehaviorSubject<ServerResponse<
-                                            DestinyLinkedProfilesResponse
-                                          >> = new BehaviorSubject(undefined);
-                                          const params: GetLinkedProfilesParams = {
-                                            getAllMemberships: true,
+                                          const action = getMembershipDataById;
+                                          const behaviorSubject: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(
+                                            undefined
+                                          );
+                                          const params: GetMembershipDataByIdParams = {
                                             membershipId,
-                                            membershipType: entry?.player?.destinyUserInfo?.membershipType,
+                                            membershipType: 0,
                                           };
-                                          this.bungieQueue.addToQueue('getLinkedProfiles', action, behaviorSubject, params);
+                                          this.bungieQueue.addToQueue('getMembershipDataById', action, behaviorSubject, params);
                                           return behaviorSubject.pipe(
                                             map((res) => {
                                               if (res?.Response) {
                                                 const nameSet = new Set();
-                                                nameSet.add(res?.Response?.bnetMembership?.displayName);
-                                                if (res?.Response?.profiles) {
-                                                  for (const prof of res?.Response?.profiles) {
+                                                nameSet.add(res?.Response?.bungieNetUser?.displayName);
+                                                nameSet.add(res?.Response?.bungieNetUser?.fbDisplayName);
+                                                nameSet.add(res?.Response?.bungieNetUser?.blizzardDisplayName?.replace(/(#[0-9]*)/gi, ''));
+                                                nameSet.add(res?.Response?.bungieNetUser?.psnDisplayName);
+                                                nameSet.add(res?.Response?.bungieNetUser?.xboxDisplayName);
+                                                nameSet.add(res?.Response?.bungieNetUser?.stadiaDisplayName?.replace(/(#[0-9]*)/gi, ''));
+                                                nameSet.add(res?.Response?.bungieNetUser?.steamDisplayName);
+                                                nameSet.add(res?.Response?.bungieNetUser?.twitchDisplayName);
+                                                console.log(res?.Response?.bungieNetUser?.twitchDisplayName);
+                                                if (res?.Response?.destinyMemberships) {
+                                                  for (const prof of res?.Response?.destinyMemberships) {
                                                     nameSet.add(prof?.displayName);
                                                   }
                                                 }
-                                                if (res?.Response?.profilesWithErrors) {
-                                                  for (const prof of res?.Response?.profilesWithErrors) {
-                                                    nameSet.add(prof?.infoCard?.displayName);
-                                                  }
-                                                }
+                                                nameSet.delete(undefined);
                                                 const names = Array.from(nameSet) as string[];
                                                 namesDbEntry = {
                                                   membershipId,

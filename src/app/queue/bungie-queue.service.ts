@@ -17,19 +17,25 @@ export class BungieQueueService {
     }[];
   }>({
     getMembershipDataForCurrentUser: [],
-    getLinkedProfiles: [],
+    getMembershipDataById: [],
     getProfile: [],
     getActivityHistory: [],
     getPostGameCarnageReport: [],
   });
-  actionPriority = ['getMembershipDataForCurrentUser', 'getLinkedProfiles', 'getProfile', 'getActivityHistory', 'getPostGameCarnageReport'];
+  actionPriority = [
+    'getMembershipDataForCurrentUser',
+    'getMembershipDataById',
+    'getProfile',
+    'getActivityHistory',
+    'getPostGameCarnageReport',
+  ];
   queueCount = {
     getMembershipDataForCurrentUser: {
       queued: 0,
       completed: 0,
       errors: 0,
     },
-    getLinkedProfiles: {
+    getMembershipDataById: {
       queued: 0,
       completed: 0,
       errors: 0,
