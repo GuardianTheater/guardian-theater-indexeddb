@@ -25,7 +25,7 @@ export class BungieAuthInterceptor implements HttpInterceptor {
     if (url.indexOf('common/destiny2_content') > 0) {
     } else {
       headers = headers.set('X-API-Key', '9b0fbe5ec42d4121b9e255528f9ad2d9');
-      if (url === 'https://www.bungie.net/platform/app/oauth/token/') {
+      if (url === 'https://www.bungie.net/platform/app/oauth/token/' || url.indexOf('getmembershipsbyid') > 0) {
       } else {
         if (this.authStorage.getItem('access_token')) {
           headers = headers.set('Authorization', `Bearer ${this.authStorage.getItem('access_token')}`);

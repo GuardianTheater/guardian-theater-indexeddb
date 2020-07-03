@@ -68,13 +68,14 @@
             ></mat-progress-bar>
           </div>
           <div>
-            Bungie - getLinkedProfiles - {{ queueCount.bungie.getLinkedProfiles.completed + queueCount.bungie.getLinkedProfiles.errors }} /
-            {{ queueCount.bungie.getLinkedProfiles.queued }}
+            Bungie - getMembershipDataById -
+            {{ queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors }} /
+            {{ queueCount.bungie.getMembershipDataById.queued }}
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getLinkedProfiles.completed + queueCount.bungie.getLinkedProfiles.errors) /
-                  queueCount.bungie.getLinkedProfiles.queued) *
+                ((queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors) /
+                  queueCount.bungie.getMembershipDataById.queued) *
                 100
               "
             ></mat-progress-bar>
@@ -168,7 +169,10 @@
                   allowfullscreen="true"
                 >
                 </iframe>
-                <span>{{ entry?.player?.destinyUserInfo?.displayName }} {{ video?.url }} {{ video?.offset }}</span>
+                <span
+                  >{{ instance?.activityDetails?.instanceId }} {{ entry?.player?.destinyUserInfo?.displayName }} {{ video?.url }}
+                  {{ video?.offset }}</span
+                >
               </div>
             </mat-card-content>
           </mat-card>
