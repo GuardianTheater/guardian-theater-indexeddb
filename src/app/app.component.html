@@ -2,7 +2,7 @@
   class="content mat-drawer-container"
   role="main"
   fxLayout="row wrap"
-  gdColumns="repeat(auto-fill, minmax(500px, 1fr))"
+  gdColumns="repeat(auto-fill, minmax(350px, 1fr))"
   gdGap="10px"
   style="padding: 10px;"
 >
@@ -61,9 +61,12 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getMembershipDataForCurrentUser.completed + queueCount.bungie.getMembershipDataForCurrentUser.errors) /
-                  queueCount.bungie.getMembershipDataForCurrentUser.queued) *
-                100
+                !queueCount.bungie.getMembershipDataForCurrentUser.queued
+                  ? 100
+                  : ((queueCount.bungie.getMembershipDataForCurrentUser.completed +
+                      queueCount.bungie.getMembershipDataForCurrentUser.errors) /
+                      queueCount.bungie.getMembershipDataForCurrentUser.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -74,9 +77,11 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors) /
-                  queueCount.bungie.getMembershipDataById.queued) *
-                100
+                !queueCount.bungie.getMembershipDataById.queued
+                  ? 100
+                  : ((queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors) /
+                      queueCount.bungie.getMembershipDataById.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -86,7 +91,10 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getProfile.completed + queueCount.bungie.getProfile.errors) / queueCount.bungie.getProfile.queued) * 100
+                !queueCount.bungie.getProfile.queued
+                  ? 100
+                  : ((queueCount.bungie.getProfile.completed + queueCount.bungie.getProfile.errors) / queueCount.bungie.getProfile.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -97,9 +105,11 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors) /
-                  queueCount.bungie.getActivityHistory.queued) *
-                100
+                !queueCount.bungie.getActivityHistory.queued
+                  ? 100
+                  : ((queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors) /
+                      queueCount.bungie.getActivityHistory.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -110,9 +120,11 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors) /
-                  queueCount.bungie.getPostGameCarnageReport.queued) *
-                100
+                !queueCount.bungie.getPostGameCarnageReport.queued
+                  ? 100
+                  : ((queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors) /
+                      queueCount.bungie.getPostGameCarnageReport.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -122,7 +134,10 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.twitch.getVideos.completed + queueCount.twitch.getVideos.errors) / queueCount.twitch.getVideos.queued) * 100
+                !queueCount.twitch.getVideos.queued
+                  ? 100
+                  : ((queueCount.twitch.getVideos.completed + queueCount.twitch.getVideos.errors) / queueCount.twitch.getVideos.queued) *
+                    100
               "
             ></mat-progress-bar>
           </div>
@@ -132,7 +147,9 @@
             <mat-progress-bar
               mode="determinate"
               [value]="
-                ((queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors) / queueCount.twitch.getUsers.queued) * 100
+                !queueCount.twitch.getUsers.queued
+                  ? 100
+                  : ((queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors) / queueCount.twitch.getUsers.queued) * 100
               "
             ></mat-progress-bar>
           </div>
@@ -140,7 +157,7 @@
       </mat-card-content>
     </mat-card>
   </div>
-  <ng-container *ngFor="let instance of state.instancesWithClips$ | async">
+  <ng-container *ngFor="let instance of instances">
     <ng-container *ngIf="(instance.twitchClips | async)?.length">
       <ng-container *ngFor="let entry of instance?.entries">
         <ng-container *ngFor="let video of entry.twitchClips | async">
@@ -156,17 +173,18 @@
                 instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
               }}</mat-card-subtitle>
             </mat-card-header>
-            <img *ngIf="!video.play" mat-card-image [src]="video | twitch: 'thumbnail'" (click)="video.play = true" />
-            <iframe
-              *ngIf="video.play"
-              mat-card-image
-              class="twitch-embed"
-              [src]="video | twitch: 'embedUrl'"
-              frameborder="0"
-              scrolling="no"
-              allowfullscreen="true"
-            >
-            </iframe>
+            <div class="twitch-embed" mat-card-image>
+              <img (click)="video.play = true" [src]="video | twitch: 'thumbnail'" />
+              <iframe
+                *ngIf="video.play"
+                mat-card-image
+                [src]="video | twitch: 'embedUrl'"
+                frameborder="0"
+                scrolling="no"
+                allowfullscreen="true"
+              >
+              </iframe>
+            </div>
             <mat-card-content>
               <div>
                 <span>{{ entry?.player?.destinyUserInfo?.displayName }} {{ video?.url }} {{ video?.offset }}</span>

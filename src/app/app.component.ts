@@ -8,6 +8,7 @@ import { DestinyPostGameCarnageReportData } from 'bungie-api-ts/destiny2';
 import { StateService } from './state/state.service';
 import { TwitchVideo, TwitchQueueService } from './queue/twitch-queue.service';
 import { BungieQueueService } from './queue/bungie-queue.service';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-root',
@@ -16,10 +17,9 @@ import { BungieQueueService } from './queue/bungie-queue.service';
 })
 export class AppComponent implements OnInit {
   title = 'guardian-theater-indexeddb';
-  pgcrs$ = new BehaviorSubject<{ instanceId: string; period: string; response: DestinyPostGameCarnageReportData }[]>([]);
-  instancesWithClips$: Observable<any>;
-  instanceSet: Set<DestinyPostGameCarnageReportData>;
+  instanceIdSet: Set<string>;
   instances: DestinyPostGameCarnageReportData[];
+
   queueCount: {
     [queue: string]: {
       [action: string]: {
@@ -44,11 +44,22 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.instanceSet = new Set();
+    this.instanceIdSet = new Set();
+    this.instances = [];
     this.queueCount.twitch = this.twitchQueue.queueCount;
     this.queueCount.bungie = this.bungieQueue.queueCount;
     this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res));
     this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res));
+    this.state.instancesWithClips$.subscribe((instances) => {
+      for (const instance of instances) {
+        if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
+          console.log('adding');
+          this.instanceIdSet.add(instance.activityDetails.instanceId);
+          this.instances.push(instance);
+          this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10));
+        }
+      }
+    });
   }
 
   loginBungie() {
