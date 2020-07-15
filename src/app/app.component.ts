@@ -2,13 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { BungieAuthService } from './auth/bungie-auth/bungie-auth.service';
 import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service';
 import { HttpClient } from '@angular/common/http';
-import { getMembershipDataForCurrentUser } from 'bungie-api-ts/user';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { DestinyPostGameCarnageReportData } from 'bungie-api-ts/destiny2';
 import { StateService } from './state/state.service';
-import { TwitchVideo, TwitchQueueService } from './queue/twitch-queue.service';
+import { TwitchQueueService } from './queue/twitch-queue.service';
 import { BungieQueueService } from './queue/bungie-queue.service';
-import { trigger, transition, style, animate } from '@angular/animations';
+import { QueueCount, DestinyPostGameCarnageReportDataExtended } from './types';
 
 @Component({
   selector: 'app-root',
@@ -18,15 +15,11 @@ import { trigger, transition, style, animate } from '@angular/animations';
 export class AppComponent implements OnInit {
   title = 'guardian-theater-indexeddb';
   instanceIdSet: Set<string>;
-  instances: DestinyPostGameCarnageReportData[];
+  instances: DestinyPostGameCarnageReportDataExtended[];
 
   queueCount: {
     [queue: string]: {
-      [action: string]: {
-        queued: number;
-        completed: number;
-        errors: number;
-      };
+      [action: string]: QueueCount;
     };
   } = {};
   authState = {
@@ -53,7 +46,6 @@ export class AppComponent implements OnInit {
     this.state.instancesWithClips$.subscribe((instances) => {
       for (const instance of instances) {
         if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
-          console.log('adding');
           this.instanceIdSet.add(instance.activityDetails.instanceId);
           this.instances.push(instance);
           this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10));
@@ -66,19 +58,17 @@ export class AppComponent implements OnInit {
     this.authBungie.login();
   }
 
-  async getProfile() {
-    const res = await getMembershipDataForCurrentUser((config) => this.http.get(config.url).toPromise());
-  }
-
   loginTwitch() {
     this.authTwitch.login();
   }
 
   logoutBungie() {
     this.authBungie.logout();
+    this.authState.bungie = false;
   }
 
   logoutTwitch() {
     this.authTwitch.logout();
+    this.authState.twitch = false;
   }
 }

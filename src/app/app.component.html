@@ -15,7 +15,7 @@
   <input type="hidden" #selection />
 
   <div class="card-container">
-    <div class="card card-small" (click)="loginBungie()" tabindex="0">
+    <div class="card card-small" (click)="loginBungie()" *ngIf="!authState.bungie">
       <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>
@@ -23,7 +23,7 @@
       <span>Bungie Login</span>
     </div>
 
-    <div class="card card-small" (click)="logoutBungie()" tabindex="0">
+    <div class="card card-small" (click)="logoutBungie()" *ngIf="authState.bungie">
       <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>
@@ -31,7 +31,7 @@
       <span>Bungie Logout</span>
     </div>
 
-    <div class="card card-small" (click)="loginTwitch()" tabindex="0">
+    <div class="card card-small" (click)="loginTwitch()" *ngIf="!authState.twitch">
       <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>
@@ -39,7 +39,7 @@
       <span>Twitch Login</span>
     </div>
 
-    <div class="card card-small" (click)="logoutTwitch()" tabindex="0">
+    <div class="card card-small" (click)="logoutTwitch()" *ngIf="authState.twitch">
       <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>
@@ -60,14 +60,8 @@
             {{ queueCount.bungie.getMembershipDataForCurrentUser.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.bungie.getMembershipDataForCurrentUser.queued
-                  ? 100
-                  : ((queueCount.bungie.getMembershipDataForCurrentUser.completed +
-                      queueCount.bungie.getMembershipDataForCurrentUser.errors) /
-                      queueCount.bungie.getMembershipDataForCurrentUser.queued) *
-                    100
-              "
+              [value]="queueCount.bungie.getMembershipDataForCurrentUser.percentage"
+              [color]="authState.bungie ? queueCount.bungie.getMembershipDataForCurrentUser.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -76,13 +70,8 @@
             {{ queueCount.bungie.getMembershipDataById.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.bungie.getMembershipDataById.queued
-                  ? 100
-                  : ((queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors) /
-                      queueCount.bungie.getMembershipDataById.queued) *
-                    100
-              "
+              [value]="queueCount.bungie.getMembershipDataById.percentage"
+              [color]="authState.bungie ? queueCount.bungie.getMembershipDataById.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -90,12 +79,8 @@
             {{ queueCount.bungie.getProfile.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.bungie.getProfile.queued
-                  ? 100
-                  : ((queueCount.bungie.getProfile.completed + queueCount.bungie.getProfile.errors) / queueCount.bungie.getProfile.queued) *
-                    100
-              "
+              [value]="queueCount.bungie.getProfile.percentage"
+              [color]="authState.bungie ? queueCount.bungie.getProfile.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -104,13 +89,8 @@
             {{ queueCount.bungie.getActivityHistory.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.bungie.getActivityHistory.queued
-                  ? 100
-                  : ((queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors) /
-                      queueCount.bungie.getActivityHistory.queued) *
-                    100
-              "
+              [value]="queueCount.bungie.getActivityHistory.percentage"
+              [color]="authState.bungie ? queueCount.bungie.getActivityHistory.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -119,13 +99,8 @@
             {{ queueCount.bungie.getPostGameCarnageReport.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.bungie.getPostGameCarnageReport.queued
-                  ? 100
-                  : ((queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors) /
-                      queueCount.bungie.getPostGameCarnageReport.queued) *
-                    100
-              "
+              [value]="queueCount.bungie.getPostGameCarnageReport.percentage"
+              [color]="authState.bungie ? queueCount.bungie.getPostGameCarnageReport.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -133,12 +108,8 @@
             {{ queueCount.twitch.getVideos.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.twitch.getVideos.queued
-                  ? 100
-                  : ((queueCount.twitch.getVideos.completed + queueCount.twitch.getVideos.errors) / queueCount.twitch.getVideos.queued) *
-                    100
-              "
+              [value]="queueCount.twitch.getVideos.percentage"
+              [color]="authState.twitch ? queueCount.twitch.getVideos.color : 'warn'"
             ></mat-progress-bar>
           </div>
           <div>
@@ -146,11 +117,8 @@
             {{ queueCount.twitch.getUsers.queued }}
             <mat-progress-bar
               mode="determinate"
-              [value]="
-                !queueCount.twitch.getUsers.queued
-                  ? 100
-                  : ((queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors) / queueCount.twitch.getUsers.queued) * 100
-              "
+              [value]="queueCount.twitch.getUsers.percentage"
+              [color]="authState.twitch ? queueCount.twitch.getUsers.color : 'warn'"
             ></mat-progress-bar>
           </div>
         </div>
@@ -168,10 +136,11 @@
                 [src]="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 [alt]="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
               />
-              <mat-card-title>{{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</mat-card-title>
-              <mat-card-subtitle>{{
-                instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
-              }}</mat-card-subtitle>
+              <mat-card-title>{{ entry.player.destinyUserInfo.displayName }}</mat-card-title>
+              <mat-card-subtitle>
+                {{ instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async }} |
+                {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</mat-card-subtitle
+              >
             </mat-card-header>
             <div class="twitch-embed" mat-card-image>
               <img (click)="video.play = true" [src]="video | twitch: 'thumbnail'" />
@@ -185,11 +154,12 @@
               >
               </iframe>
             </div>
-            <mat-card-content>
-              <div>
-                <span>{{ entry?.player?.destinyUserInfo?.displayName }} {{ video?.url }} {{ video?.offset }}</span>
-              </div>
-            </mat-card-content>
+            <mat-card-header>
+              <mat-card-title>
+                <span>{{ video.user_name }} | {{ video?.offset }}</span>
+              </mat-card-title>
+              <mat-card-subtitle> {{ video?.title }} </mat-card-subtitle>
+            </mat-card-header>
           </mat-card>
         </ng-container>
       </ng-container>

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { debounceTime, take } from 'rxjs/operators';
+import { TwitchVideo, QueueCount, TwitchAccount } from '../types';
 
 @Injectable({
   providedIn: 'root',
@@ -18,16 +19,22 @@ export class TwitchQueueService {
   });
   actionPriority = ['getVideos', 'getUsers'];
 
-  queueCount = {
+  queueCount: {
+    [queue: string]: QueueCount;
+  } = {
     getUsers: {
       queued: 0,
       completed: 0,
       errors: 0,
+      percentage: 0,
+      color: 'primary',
     },
     getVideos: {
       queued: 0,
       completed: 0,
       errors: 0,
+      percentage: 0,
+      color: 'primary',
     },
   };
 
@@ -43,6 +50,7 @@ export class TwitchQueueService {
               while (queue.length > 0 && nextAction.payload.length + queue[0].payload.length <= 100) {
                 const next = queue.shift();
                 this.queueCount.getUsers.queued--;
+                this.updateQueue(this.queueCount.getUsers);
                 nextAction.payload = [...nextAction.payload, next.payload];
               }
               this.queue$.next(queueDict);
@@ -81,6 +89,7 @@ export class TwitchQueueService {
         queue[action] = [...queue[action], { behaviorSubject, payload }];
         this.queue$.next(queue);
         this.queueCount[action].queued++;
+        this.updateQueue(this.queueCount[action]);
       }
     });
   }
@@ -94,6 +103,7 @@ export class TwitchQueueService {
       this.http.get(url).subscribe((res: { data: TwitchAccount[] }) => {
         behaviorSubject.next(res);
         this.queueCount.getUsers.completed++;
+        this.updateQueue(this.queueCount.getUsers);
       });
     }
   }
@@ -109,37 +119,19 @@ export class TwitchQueueService {
       .subscribe((res: { data: TwitchVideo[]; pagination: { cursor: string } }) => {
         behaviorSubject.next(res);
         this.queueCount.getVideos.completed++;
+        this.updateQueue(this.queueCount.getVideos);
       });
   }
-}
 
-export interface TwitchAccount {
-  broadcaster_type: string;
-  description: string;
-  display_name: string;
-  id: string;
-  login: string;
-  offline_image_url: string;
-  profile_image_url: string;
-  type: string;
-  view_count: number;
-}
-
-export interface TwitchVideo {
-  id: string;
-  user_id: string;
-  user_name: string;
-  title: string;
-  description: string;
-  created_at: string;
-  published_at: string;
-  url: string;
-  thumbnail_url: string;
-  viewable: string;
-  view_count: number;
-  language: string;
-  type: string;
-  duration: string;
-  offset?: string;
-  play?: boolean;
+  updateQueue(queueCount: QueueCount) {
+    queueCount.percentage = queueCount.queued ? ((queueCount.completed + queueCount.errors) / queueCount.queued) * 100 : 0;
+    let activeFound = false;
+    for (const action of this.actionPriority) {
+      this.queueCount[action].color =
+        activeFound || this.queueCount[action].queued === 0 || this.queueCount[action].percentage === 100 ? 'primary' : 'accent';
+      if (this.queueCount[action].percentage > 0 && this.queueCount[action].percentage < 100) {
+        activeFound = true;
+      }
+    }
+  }
 }

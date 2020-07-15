@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { TwitchVideo } from '../queue/twitch-queue.service';
 import { DomSanitizer } from '@angular/platform-browser';
+import { TwitchVideo } from '../types';
 
 @Pipe({
   name: 'twitch',

@@ -37,7 +37,8 @@ import {
   DestinyHistoricalStatsPeriodGroup,
 } from 'bungie-api-ts/destiny2';
 import { NgxIndexedDBService } from 'ngx-indexed-db';
-import { TwitchQueueService, TwitchAccount, TwitchVideo } from '../queue/twitch-queue.service';
+import { TwitchQueueService } from '../queue/twitch-queue.service';
+import { TwitchAccount, TwitchVideo } from '../types';
 
 @Injectable({
   providedIn: 'root',
