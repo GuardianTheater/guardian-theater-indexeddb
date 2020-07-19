@@ -631,8 +631,16 @@ export class StateService {
         }
       });
 
-      this.nameQueue$
+      this.twitchAuth.hasValidIdToken$
         .pipe(
+          distinctUntilChanged(),
+          switchMap((valid) => {
+            if (valid) {
+              return this.nameQueue$;
+            } else {
+              return EMPTY;
+            }
+          }),
           debounceTime(75),
           map((queue) => {
             if (queue.length) {
