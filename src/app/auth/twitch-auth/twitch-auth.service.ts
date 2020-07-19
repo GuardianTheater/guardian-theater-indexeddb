@@ -4,7 +4,8 @@ import { JwksValidationHandler } from 'angular-oauth2-oidc-jwks';
 import { OAuthTwitchService } from './twitch-auth.module';
 import { TwitchOAuthStorage } from './twitch-auth.storage';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -18,18 +19,21 @@ export class TwitchAuthService {
       issuer: 'https://id.twitch.tv/oauth2',
       loginUrl: 'https://id.twitch.tv/oauth2/authorize',
       tokenEndpoint: 'https://id.twitch.tv/oauth2/token',
-      clientId: 'o8cuwhl23x5ways7456xhitdm0f4th0',
-      redirectUri: 'http://localhost:4200',
+      clientId: environment.twitch.clientId,
+      redirectUri: environment.twitch.redirect,
       responseType: 'token id_token',
       scope: 'openid',
     });
     this.oAuthService.tokenValidationHandler = new JwksValidationHandler();
-    this.oAuthService.loadDiscoveryDocumentAndTryLogin({ disableOAuth2StateCheck: true }).then(() => {
-      if (this.oAuthService.hasValidIdToken()) {
-        this.oAuthService.setupAutomaticSilentRefresh({ disableOAuth2StateCheck: true });
-        this.hasValidIdToken$.next(true);
-      }
-    });
+    this.tryLogin();
+  }
+
+  async tryLogin() {
+    await this.oAuthService.loadDiscoveryDocumentAndTryLogin();
+    if (this.oAuthService.hasValidIdToken()) {
+      this.oAuthService.setupAutomaticSilentRefresh();
+      this.hasValidIdToken$.next(true);
+    }
   }
 
   async login() {

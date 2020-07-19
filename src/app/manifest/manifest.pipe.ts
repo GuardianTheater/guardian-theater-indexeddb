@@ -28,6 +28,8 @@ export class ManifestPipe implements PipeTransform {
               return this.manifestService.defs.Activity.get(hash).displayProperties.hasIcon
                 ? `https://bungie.net${this.manifestService.defs.Activity.get(hash).displayProperties.icon}`
                 : ``;
+            case 'emblemHash':
+              return `https://bungie.net${this.manifestService.defs.InventoryItem.get(hash).displayProperties.icon}`;
             default:
               return '';
           }

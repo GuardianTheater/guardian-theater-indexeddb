@@ -47,3 +47,18 @@ export interface DestinyPostGameCarnageReportDataExtended extends DestinyPostGam
 export interface DestinyPostGameCarnageReportEntryExtended extends DestinyPostGameCarnageReportEntry {
   twitchClips?: Observable<TwitchVideo[]>;
 }
+
+export interface NamesDbEntry {
+  membershipId: string;
+  nameArray: string[];
+  nameObject: {
+    displayName?: string;
+    fbDisplayName?: string;
+    blizzardDisplayName?: string;
+    psnDisplayName?: string;
+    xboxDisplayName?: string;
+    stadiaDisplayName?: string;
+    steamDisplayName?: string;
+    twitchDisplayName?: string;
+  };
+}

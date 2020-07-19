@@ -99,8 +99,15 @@ import { TwitchPipe } from './pipes/twitch.pipe';
               },
             },
             {
-              name: 'names',
-              keypath: 'names',
+              name: 'nameArray',
+              keypath: 'nameArray',
+              options: {
+                unique: false,
+              },
+            },
+            {
+              name: 'nameObject',
+              keypath: 'nameObject',
               options: {
                 unique: false,
               },

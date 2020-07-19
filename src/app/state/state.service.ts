@@ -38,7 +38,7 @@ import {
 } from 'bungie-api-ts/destiny2';
 import { NgxIndexedDBService } from 'ngx-indexed-db';
 import { TwitchQueueService } from '../queue/twitch-queue.service';
-import { TwitchAccount, TwitchVideo } from '../types';
+import { TwitchAccount, TwitchVideo, NamesDbEntry } from '../types';
 
 @Injectable({
   providedIn: 'root',
@@ -53,12 +53,7 @@ export class StateService {
   private instanceIdSet = new Set();
   private membershipNamesSet = new Set();
 
-  private nameQueue$: BehaviorSubject<
-    {
-      membershipId: string;
-      names: string[];
-    }[]
-  > = new BehaviorSubject([]);
+  private nameQueue$: BehaviorSubject<NamesDbEntry[]> = new BehaviorSubject([]);
 
   twitchVideosDbState: {
     [twitchId: string]: BehaviorSubject<{
@@ -81,10 +76,7 @@ export class StateService {
     };
   }> = new BehaviorSubject({});
   namesDbState: BehaviorSubject<{
-    [membershipId: string]: {
-      membershipId: string;
-      names: string[];
-    };
+    [membershipId: string]: NamesDbEntry;
   }> = new BehaviorSubject({});
   lastEncounteredDbState: BehaviorSubject<{
     [membershipId: string]: {
@@ -371,7 +363,7 @@ export class StateService {
                     for (const activity of history?.Response?.activities) {
                       const instanceId = activity?.activityDetails?.instanceId;
                       const period = new Date(activity?.period);
-                      const offset = new Date(new Date().setDate(new Date().getDate() - 14));
+                      const offset = new Date(new Date().setDate(new Date().getDate() - 60));
                       if (!this.instanceIdSet.has(instanceId) && period > offset) {
                         this.instanceIdSet.add(instanceId);
                         this.pgcrsDbState
@@ -459,17 +451,17 @@ export class StateService {
                                     .pipe(
                                       take(1),
                                       map((namesDbState) => namesDbState[membershipId] || {}),
-                                      switchMap((namesDbEntry: { membershipId: string; names: string[] }) => {
-                                        if (namesDbEntry?.names?.length) {
-                                          if (namesDbEntry?.names.indexOf(entry?.player?.destinyUserInfo?.displayName) < 0) {
-                                            namesDbEntry?.names.push(entry?.player?.destinyUserInfo?.displayName);
+                                      switchMap((namesDbEntry: NamesDbEntry) => {
+                                        if (namesDbEntry?.nameArray?.length) {
+                                          if (namesDbEntry?.nameArray.indexOf(entry?.player?.destinyUserInfo?.displayName) < 0) {
+                                            namesDbEntry?.nameArray.push(entry?.player?.destinyUserInfo?.displayName);
                                             this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
                                               namesDbState[membershipId] = namesDbEntry;
                                               this.namesDbState.next(namesDbState);
                                             });
                                             this.dbService.update('names', namesDbEntry);
                                           }
-                                          return of(namesDbEntry?.names || []);
+                                          return of(namesDbEntry || { membershipId, nameArray: [], nameObject: {} });
                                         } else if (membershipId && entry?.player?.destinyUserInfo?.membershipType) {
                                           const action = getMembershipDataById;
                                           const behaviorSubject: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(
@@ -498,36 +490,38 @@ export class StateService {
                                                   }
                                                 }
                                                 nameSet.delete(undefined);
-                                                const names = Array.from(nameSet) as string[];
+                                                const nameArray = Array.from(nameSet) as string[];
                                                 namesDbEntry = {
                                                   membershipId,
-                                                  names,
+                                                  nameArray,
+                                                  nameObject: {
+                                                    displayName: res?.Response?.bungieNetUser?.displayName,
+                                                    fbDisplayName: res?.Response?.bungieNetUser?.fbDisplayName,
+                                                    blizzardDisplayName: res?.Response?.bungieNetUser?.blizzardDisplayName,
+                                                    psnDisplayName: res?.Response?.bungieNetUser?.psnDisplayName,
+                                                    xboxDisplayName: res?.Response?.bungieNetUser?.xboxDisplayName,
+                                                    stadiaDisplayName: res?.Response?.bungieNetUser?.xboxDisplayName,
+                                                    steamDisplayName: res?.Response?.bungieNetUser?.steamDisplayName,
+                                                    twitchDisplayName: res?.Response?.bungieNetUser?.twitchDisplayName,
+                                                  },
                                                 };
                                                 this.namesDbState.pipe(take(1)).subscribe((namesDbState) => {
                                                   namesDbState[membershipId] = namesDbEntry;
                                                   this.namesDbState.next(namesDbState);
                                                 });
                                                 this.dbService.update('names', namesDbEntry);
-                                                return names;
+                                                return namesDbEntry;
                                               } else {
-                                                return [];
+                                                return { membershipId, nameArray: [], nameObject: {} };
                                               }
                                             })
                                           );
                                         } else {
-                                          return of([]);
+                                          return of({ membershipId, nameArray: [], nameObject: {} });
                                         }
                                       }),
-                                      map((names) => {
-                                        this.nameQueue$.pipe(take(1)).subscribe((queue) =>
-                                          this.nameQueue$.next([
-                                            ...queue,
-                                            {
-                                              membershipId,
-                                              names,
-                                            },
-                                          ])
-                                        );
+                                      map((namesDbEntry) => {
+                                        this.nameQueue$.pipe(take(1)).subscribe((queue) => this.nameQueue$.next([...queue, namesDbEntry]));
                                       })
                                     )
                                     .subscribe();
@@ -642,39 +636,40 @@ export class StateService {
           debounceTime(75),
           map((queue) => {
             if (queue.length) {
-              const memberships: {
-                membershipId: string;
-                names: string[];
-              }[] = [];
+              const memberships: NamesDbEntry[] = [];
               const payload: string[] = [];
               const prefixes = ['twitchtv', 'twitch', 'ttv', 'tv'];
               while (queue.length && payload.length < 101) {
                 const membership = queue.shift();
-                if (membership?.names?.length) {
-                  let names = [];
-                  for (const name of membership?.names) {
+                if (membership?.nameArray?.length) {
+                  let nameArray = [];
+                  for (const name of membership?.nameArray) {
                     if (name) {
                       let currentName = name
                         .replace(/[^A-Za-z0-9_]+/gi, '')
                         .replace(/^_+|_+$/gi, '')
                         .toLowerCase();
                       if (currentName.length > 2 && currentName.length < 26) {
-                        names.push(currentName);
+                        nameArray.push(currentName);
                       }
                       for (const prefix of prefixes) {
                         if (currentName && currentName?.indexOf(prefix) > -1) {
                           currentName = currentName?.replace(prefix, '').replace(/^_+|_+$/gi, '');
                           if (currentName.length > 2 && currentName.length < 26) {
-                            names.push(currentName);
+                            nameArray.push(currentName);
                           }
                         }
                       }
                     }
                   }
-                  names = Array.from(new Set(names));
-                  if (payload.length + names.length < 101) {
-                    memberships.push({ names, membershipId: membership.membershipId });
-                    for (const name of names) {
+                  nameArray = Array.from(new Set(nameArray));
+                  if (payload.length + nameArray.length < 101) {
+                    memberships.push({
+                      nameArray,
+                      membershipId: membership.membershipId,
+                      nameObject: membership.nameObject,
+                    });
+                    for (const name of nameArray) {
                       payload.push(name);
                     }
                   } else {
@@ -693,8 +688,8 @@ export class StateService {
                     if (res?.data) {
                       for (const result of res?.data) {
                         for (const membership of memberships) {
-                          const { membershipId, names } = membership;
-                          const nameSet = new Set(names);
+                          const { membershipId, nameArray } = membership;
+                          const nameSet = new Set(nameArray);
                           if (nameSet.has(result.login)) {
                             if (!this.twitchAccountsDbState[membershipId]) {
                               this.twitchAccountsDbState[membershipId] = new BehaviorSubject({

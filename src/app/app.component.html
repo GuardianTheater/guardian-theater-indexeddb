@@ -132,14 +132,22 @@
           <mat-card>
             <mat-card-header>
               <img
+                *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 mat-card-avatar
                 [src]="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 [alt]="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
               />
               <mat-card-title>{{ entry.player.destinyUserInfo.displayName }}</mat-card-title>
-              <mat-card-subtitle>
-                {{ instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async }} |
-                {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</mat-card-subtitle
+              <mat-card-subtitle *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async">
+                {{ instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
+                }}<span
+                  *ngIf="
+                    (instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async) !==
+                    (instance?.activityDetails?.referenceId | manifest: 'activityName' | async)
+                  "
+                >
+                  | {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</span
+                ></mat-card-subtitle
               >
             </mat-card-header>
             <div class="twitch-embed" mat-card-image>
@@ -154,7 +162,13 @@
               >
               </iframe>
             </div>
-            <mat-card-header>
+            <mat-card-header
+              ><img
+                mat-card-avatar
+                *ngIf="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                [alt]="entry.player.destinyUserInfo.displayName"
+              />
               <mat-card-title>
                 <span>{{ video.user_name }} | {{ video?.offset }}</span>
               </mat-card-title>
