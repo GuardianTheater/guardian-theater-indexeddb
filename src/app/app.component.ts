@@ -1,11 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { BungieAuthService } from './auth/bungie-auth/bungie-auth.service';
 import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service';
-import { HttpClient } from '@angular/common/http';
 import { StateService } from './state/state.service';
 import { TwitchQueueService } from './queue/twitch-queue.service';
 import { BungieQueueService } from './queue/bungie-queue.service';
-import { QueueCount, DestinyPostGameCarnageReportDataExtended } from './types';
+import { QueueCount, DestinyPostGameCarnageReportDataExtended, TwitchVideo } from './types';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +29,6 @@ export class AppComponent implements OnInit {
   constructor(
     private authBungie: BungieAuthService,
     private authTwitch: TwitchAuthService,
-    private http: HttpClient,
     public state: StateService,
     private twitchQueue: TwitchQueueService,
     private bungieQueue: BungieQueueService
@@ -70,5 +68,11 @@ export class AppComponent implements OnInit {
   logoutTwitch() {
     this.authTwitch.logout();
     this.authState.twitch = false;
+  }
+
+  loadVideo(video: TwitchVideo, instance: DestinyPostGameCarnageReportDataExtended) {
+    this.instances.forEach((inst) => (inst.watching = false));
+    instance.watching = true;
+    video.play = true;
   }
 }

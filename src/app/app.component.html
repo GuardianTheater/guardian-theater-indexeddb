@@ -151,9 +151,9 @@
               >
             </mat-card-header>
             <div class="twitch-embed" mat-card-image>
-              <img (click)="video.play = true" [src]="video | twitch: 'thumbnail'" />
+              <img (click)="loadVideo(video, instance)" [src]="video | twitch: 'thumbnail'" />
               <iframe
-                *ngIf="video.play"
+                *ngIf="instance.watching && video.play"
                 mat-card-image
                 [src]="video | twitch: 'embedUrl'"
                 frameborder="0"

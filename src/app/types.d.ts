@@ -43,6 +43,7 @@ export interface TwitchVideo {
 export interface DestinyPostGameCarnageReportDataExtended extends DestinyPostGameCarnageReportData {
   twitchClips?: Observable<TwitchVideo[]>;
   entries: DestinyPostGameCarnageReportEntryExtended[];
+  watching?: boolean;
 }
 export interface DestinyPostGameCarnageReportEntryExtended extends DestinyPostGameCarnageReportEntry {
   twitchClips?: Observable<TwitchVideo[]>;
