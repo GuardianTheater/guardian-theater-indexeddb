@@ -27,7 +27,7 @@
     "bungie-api-ts": "^4.1.0",
     "fast-equals": "^2.0.0",
     "idb-keyval": "^3.2.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "ngx-indexed-db": "^5.0.4",
     "rxdb": "^9.1.0",
     "rxjs": "~6.5.4",
