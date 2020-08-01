@@ -38,7 +38,18 @@ export interface TwitchVideo {
   duration: string;
   offset?: string;
   play?: boolean;
+  matchType?: Observable<NameMatchTypes>;
 }
+
+export type NameMatchTypes =
+  | 'displayName'
+  | 'fbDisplayName'
+  | 'blizzardDisplayName'
+  | 'psnDisplayName'
+  | 'xboxDisplayName'
+  | 'stadiaDisplayName'
+  | 'steamDisplayName'
+  | 'twitchDisplayName';
 
 export interface DestinyPostGameCarnageReportDataExtended extends DestinyPostGameCarnageReportData {
   twitchClips?: Observable<TwitchVideo[]>;
@@ -47,6 +58,7 @@ export interface DestinyPostGameCarnageReportDataExtended extends DestinyPostGam
 }
 export interface DestinyPostGameCarnageReportEntryExtended extends DestinyPostGameCarnageReportEntry {
   twitchClips?: Observable<TwitchVideo[]>;
+  namesDbEntry?: Observable<NamesDbEntry>;
 }
 
 export interface NamesDbEntry {

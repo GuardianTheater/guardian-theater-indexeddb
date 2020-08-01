@@ -13,118 +13,101 @@
   <!-- Next Steps -->
 
   <input type="hidden" #selection />
-
-  <div class="card-container">
-    <div class="card card-small" (click)="loginBungie()" *ngIf="!authState.bungie">
-      <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-      </svg>
-
-      <span>Bungie Login</span>
-    </div>
-
-    <div class="card card-small" (click)="logoutBungie()" *ngIf="authState.bungie">
-      <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-      </svg>
-
-      <span>Bungie Logout</span>
-    </div>
-
-    <div class="card card-small" (click)="loginTwitch()" *ngIf="!authState.twitch">
-      <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-      </svg>
-
-      <span>Twitch Login</span>
-    </div>
-
-    <div class="card card-small" (click)="logoutTwitch()" *ngIf="authState.twitch">
-      <svg class="material-icons" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-      </svg>
-
-      <span>Twitch Logout</span>
-    </div>
-  </div>
-  <div>
-    <mat-card>
-      <mat-card-title>Queues</mat-card-title>
-      <mat-card-content>
+  <mat-card>
+    <mat-card-title>Welcome to the Alpha</mat-card-title>
+    <mat-card-content
+      ><p>Greetings Guardians,</p>
+      <p>
+        The site has been rebuilt from the ground up, but we have a ways to go to a full release. We're missing old features, we've got new
+        bugs. You can report issues and track progress, as well as Sponsor the site, on Github.
+      </p>
+      <p>Login with both Bungie and Twitch to make the magic happen.</p></mat-card-content
+    >
+    <mat-card-actions>
+      <button mat-raised-button color="primary" (click)="loginBungie()" *ngIf="!authState.bungie">Bungie Login</button>
+      <button mat-button (click)="logoutBungie()" *ngIf="authState.bungie">Bungie Logout</button>
+      <button mat-raised-button color="primary" (click)="loginTwitch()" *ngIf="!authState.twitch">Twitch Login</button>
+      <button mat-button (click)="logoutTwitch()" *ngIf="authState.twitch">Twitch Logout</button>
+      <a mat-raised-button color="accent" href="https://github.com/GuardianTheater/guardian-theater-indexeddb/issues" target="_blank"
+        >Issues</a
+      >
+      <a mat-raised-button color="accent" target="_blank" href="https://github.com/sponsors/chrisfried">Sponsor</a>
+    </mat-card-actions>
+  </mat-card>
+  <mat-card>
+    <mat-card-title>Queues</mat-card-title>
+    <mat-card-content>
+      <div>
         <div>
-          <div>Bungie - auth - {{ authState.bungie }}</div>
-          <div>Twitch - auth - {{ authState.twitch }}</div>
-          <div>
-            Bungie - getMembershipDataForCurrentUser -
-            {{ queueCount.bungie.getMembershipDataForCurrentUser.completed + queueCount.bungie.getMembershipDataForCurrentUser.errors }} /
-            {{ queueCount.bungie.getMembershipDataForCurrentUser.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.bungie.getMembershipDataForCurrentUser.percentage"
-              [color]="authState.bungie ? queueCount.bungie.getMembershipDataForCurrentUser.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Bungie - getMembershipDataById -
-            {{ queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors }} /
-            {{ queueCount.bungie.getMembershipDataById.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.bungie.getMembershipDataById.percentage"
-              [color]="authState.bungie ? queueCount.bungie.getMembershipDataById.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Bungie - getProfile - {{ queueCount.bungie.getProfile.completed + queueCount.bungie.getProfile.errors }} /
-            {{ queueCount.bungie.getProfile.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.bungie.getProfile.percentage"
-              [color]="authState.bungie ? queueCount.bungie.getProfile.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Bungie - getActivityHistory -
-            {{ queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors }} /
-            {{ queueCount.bungie.getActivityHistory.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.bungie.getActivityHistory.percentage"
-              [color]="authState.bungie ? queueCount.bungie.getActivityHistory.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Bungie - getPostGameCarnageReport -
-            {{ queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors }} /
-            {{ queueCount.bungie.getPostGameCarnageReport.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.bungie.getPostGameCarnageReport.percentage"
-              [color]="authState.bungie ? queueCount.bungie.getPostGameCarnageReport.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Twitch - getVideos - {{ queueCount.twitch.getVideos.completed + queueCount.twitch.getVideos.errors }} /
-            {{ queueCount.twitch.getVideos.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.twitch.getVideos.percentage"
-              [color]="authState.twitch ? queueCount.twitch.getVideos.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
-          <div>
-            Twitch - getUsers - {{ queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors }} /
-            {{ queueCount.twitch.getUsers.queued }}
-            <mat-progress-bar
-              mode="determinate"
-              [value]="queueCount.twitch.getUsers.percentage"
-              [color]="authState.twitch ? queueCount.twitch.getUsers.color : 'warn'"
-            ></mat-progress-bar>
-          </div>
+          Bungie - getMembershipDataForCurrentUser -
+          {{ queueCount.bungie.getMembershipDataForCurrentUser.completed + queueCount.bungie.getMembershipDataForCurrentUser.errors }} /
+          {{ queueCount.bungie.getMembershipDataForCurrentUser.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.bungie.getMembershipDataForCurrentUser.percentage"
+            [color]="authState.bungie ? queueCount.bungie.getMembershipDataForCurrentUser.color : 'warn'"
+          ></mat-progress-bar>
         </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+        <div>
+          Bungie - getMembershipDataById -
+          {{ queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors }} /
+          {{ queueCount.bungie.getMembershipDataById.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.bungie.getMembershipDataById.percentage"
+            [color]="authState.bungie ? queueCount.bungie.getMembershipDataById.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+        <div>
+          Bungie - getProfile - {{ queueCount.bungie.getProfile.completed + queueCount.bungie.getProfile.errors }} /
+          {{ queueCount.bungie.getProfile.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.bungie.getProfile.percentage"
+            [color]="authState.bungie ? queueCount.bungie.getProfile.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+        <div>
+          Bungie - getActivityHistory -
+          {{ queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors }} /
+          {{ queueCount.bungie.getActivityHistory.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.bungie.getActivityHistory.percentage"
+            [color]="authState.bungie ? queueCount.bungie.getActivityHistory.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+        <div>
+          Bungie - getPostGameCarnageReport -
+          {{ queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors }} /
+          {{ queueCount.bungie.getPostGameCarnageReport.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.bungie.getPostGameCarnageReport.percentage"
+            [color]="authState.bungie ? queueCount.bungie.getPostGameCarnageReport.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+        <div>
+          Twitch - getVideos - {{ queueCount.twitch.getVideos.completed + queueCount.twitch.getVideos.errors }} /
+          {{ queueCount.twitch.getVideos.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.twitch.getVideos.percentage"
+            [color]="authState.twitch ? queueCount.twitch.getVideos.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+        <div>
+          Twitch - getUsers - {{ queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors }} /
+          {{ queueCount.twitch.getUsers.queued }}
+          <mat-progress-bar
+            mode="determinate"
+            [value]="queueCount.twitch.getUsers.percentage"
+            [color]="authState.twitch ? queueCount.twitch.getUsers.color : 'warn'"
+          ></mat-progress-bar>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
   <ng-container *ngFor="let instance of instances">
     <ng-container *ngIf="(instance.twitchClips | async)?.length">
       <ng-container *ngFor="let entry of instance?.entries">
@@ -136,6 +119,11 @@
                 mat-card-avatar
                 [src]="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 [alt]="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
+              /><img
+                mat-card-avatar
+                *ngIf="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                [alt]="entry.player.destinyUserInfo.displayName"
               />
               <mat-card-title>{{ entry.player.destinyUserInfo.displayName }}</mat-card-title>
               <mat-card-subtitle *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async">
@@ -146,7 +134,7 @@
                     (instance?.activityDetails?.referenceId | manifest: 'activityName' | async)
                   "
                 >
-                  | {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</span
+                  - {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }}</span
                 ></mat-card-subtitle
               >
             </mat-card-header>
@@ -162,18 +150,18 @@
               >
               </iframe>
             </div>
-            <mat-card-header
-              ><img
-                mat-card-avatar
-                *ngIf="entry.player.emblemHash | manifest: 'emblemHash' | async"
-                [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
-                [alt]="entry.player.destinyUserInfo.displayName"
-              />
-              <mat-card-title>
-                <span>{{ video.user_name }} | {{ video?.offset }}</span>
-              </mat-card-title>
-              <mat-card-subtitle> {{ video?.title }} </mat-card-subtitle>
-            </mat-card-header>
+            <mat-card-content>
+              <span class="twitchName">
+                {{ video.user_name }}
+              </span>
+              <span class="matchType"
+                ><mat-icon *ngIf="(video.matchType | async) === 'twitchDisplayName'">verified</mat-icon> {{ video.matchType | async }}</span
+              >
+              <p>{{ video?.title }}</p>
+            </mat-card-content>
+            <mat-card-actions>
+              <a target="_blank" [href]="video.url + '?t=' + video.offset" mat-button>{{ video?.offset }}</a>
+            </mat-card-actions>
           </mat-card>
         </ng-container>
       </ng-container>
