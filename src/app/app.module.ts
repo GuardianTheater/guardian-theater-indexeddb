@@ -1,24 +1,24 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
+import { BrowserModule } from '@angular/platform-browser'
+import { NgModule } from '@angular/core'
+import { FlexLayoutModule } from '@angular/flex-layout'
 
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
+import { AppRoutingModule } from './app-routing.module'
+import { AppComponent } from './app.component'
 
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http'
 
-import { BungieAuthModule } from './auth/bungie-auth/bungie-auth.module';
-import { TwitchAuthModule } from './auth/twitch-auth/twitch-auth.module';
+import { BungieAuthModule } from './auth/bungie-auth/bungie-auth.module'
+import { TwitchAuthModule } from './auth/twitch-auth/twitch-auth.module'
 
-import { NgxIndexedDBModule } from 'ngx-indexed-db';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgxIndexedDBModule } from 'ngx-indexed-db'
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ManifestPipe } from './manifest/manifest.pipe';
-import { TwitchPipe } from './pipes/twitch.pipe';
+import { MatCardModule } from '@angular/material/card'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { ManifestPipe } from './manifest/manifest.pipe'
+import { TwitchPipe } from './pipes/twitch.pipe'
 
 @NgModule({
   declarations: [AppComponent, ManifestPipe, TwitchPipe],
