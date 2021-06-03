@@ -6,30 +6,21 @@
   gdGap="10px"
   style="padding: 10px"
 >
-  <!-- Highlight Card -->
-
-  <!-- Resources -->
-
-  <!-- Next Steps -->
-
   <input type="hidden" #selection />
-  <mat-card>
-    <mat-card-title>Welcome to the Alpha</mat-card-title>
-    <mat-card-content
-      ><p>Greetings Guardians,</p>
-      <p>
-        The site has been rebuilt from the ground up, but we have a ways to go to a full release. We're missing old features, we've got new
-        bugs. You can report issues and track progress, as well as Sponsor the site, on Github.
-      </p>
-      <p>Be sure to link your Twitch account to your Bungie account if you want other Guardians to be able to find your VODs.</p>
-      <p>Login with both Bungie and Twitch to make the magic happen.</p></mat-card-content
-    >
+  <mat-card class="logo-card">
+    <img mat-card-image src="../assets/logo.png" alt="Photo of a Shiba Inu" />
+    <mat-card-content>
+      <p>Login with both a Bungie and a Twitch account to make the magic happen.</p>
+      <p>Link your Twitch account to your Bungie account if you want other Guardians to be able to find your VODs.</p>
+    </mat-card-content>
     <mat-card-actions>
       <button mat-raised-button color="primary" (click)="loginBungie()" *ngIf="!authState.bungie">Bungie Login</button>
-      <button mat-button (click)="logoutBungie()" *ngIf="authState.bungie">Bungie Logout</button>
+      <button mat-raised-button color="accent" (click)="logoutBungie()" *ngIf="authState.bungie">Bungie Logout</button>
       <button mat-raised-button color="primary" (click)="loginTwitch()" *ngIf="!authState.twitch">Twitch Login</button>
-      <button mat-button (click)="logoutTwitch()" *ngIf="authState.twitch">Twitch Logout</button>
+      <button mat-raised-button color="accent" (click)="logoutTwitch()" *ngIf="authState.twitch">Twitch Logout</button>
       <a mat-raised-button color="accent" href="https://www.bungie.net/LinkTwitch" target="_blank">Link Accounts</a>
+      <a (click)="refresh()" mat-raised-button color="accent">Soft Refresh</a>
+      <a (click)="reset()" mat-raised-button color="warn">Hard Reset</a>
       <a mat-raised-button color="accent" href="https://github.com/GuardianTheater/guardian-theater-indexeddb/issues" target="_blank"
         >Issues</a
       >
@@ -109,10 +100,6 @@
         </div>
       </div>
     </mat-card-content>
-    <mat-card-actions>
-      <a (click)="refresh()" mat-raised-button color="accent">Soft Refresh</a>
-      <a (click)="reset()" mat-raised-button color="warn">Hard Reset</a>
-    </mat-card-actions>
   </mat-card>
   <ng-container *ngFor="let instance of instances">
     <ng-container *ngIf="(instance.twitchClips | async)?.length">
@@ -198,13 +185,3 @@
     </mat-card-content>
   </mat-card>
 </div>
-
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content above * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced. * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * End of Placeholder * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-
-<router-outlet></router-outlet>

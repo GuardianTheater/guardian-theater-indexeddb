@@ -1,7 +1,7 @@
-import { Pipe, PipeTransform } from '@angular/core';
-import { ManifestService } from './manifest.service';
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { Pipe, PipeTransform } from '@angular/core'
+import { ManifestService } from './manifest.service'
+import { map } from 'rxjs/operators'
+import { Observable } from 'rxjs'
 
 @Pipe({
   name: 'manifest',
@@ -15,26 +15,26 @@ export class ManifestPipe implements PipeTransform {
         if (state.loaded) {
           switch (type) {
             case 'race':
-              return this.manifestService.defs.DestinyRace.get(hash).displayProperties.name;
+              return this.manifestService.defs.DestinyRace.get(hash).displayProperties.name
             case 'class':
-              return this.manifestService.defs.DestinyClass.get(hash).displayProperties.name;
+              return this.manifestService.defs.DestinyClass.get(hash).displayProperties.name
             case 'emblemSecondarySpecial':
-              return `https://bungie.net${this.manifestService.defs.InventoryItem.get(hash).secondarySpecial}`;
+              return `https://bungie.net${this.manifestService.defs.InventoryItem.get(hash).secondarySpecial}`
             case 'activityName':
-              return this.manifestService.defs.Activity.get(hash).displayProperties.name;
+              return this.manifestService.defs.Activity.get(hash).displayProperties.name
             case 'activityMode':
-              return this.manifestService.defs.Activity.get(hash).displayProperties.name;
+              return this.manifestService.defs.Activity.get(hash).displayProperties.name
             case 'activityIcon':
               return this.manifestService.defs.Activity.get(hash).displayProperties.hasIcon
                 ? `https://bungie.net${this.manifestService.defs.Activity.get(hash).displayProperties.icon}`
-                : ``;
+                : ``
             case 'emblemHash':
-              return `https://bungie.net${this.manifestService.defs.InventoryItem.get(hash).displayProperties.icon}`;
+              return `https://bungie.net${this.manifestService.defs.InventoryItem.get(hash).displayProperties.icon}`
             default:
-              return '';
+              return ''
           }
         }
       })
-    );
+    )
   }
 }
