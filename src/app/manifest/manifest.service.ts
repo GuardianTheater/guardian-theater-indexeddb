@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
-import _ from 'lodash';
-import { get, set, del } from 'idb-keyval';
-import { deepEqual } from 'fast-equals';
-import { BehaviorSubject, Subject, of, empty, from, EMPTY } from 'rxjs';
-import { switchMap, map, catchError } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core'
+import _ from 'lodash'
+import { get, set, del } from 'idb-keyval'
+import { deepEqual } from 'fast-equals'
+import { BehaviorSubject, Subject, of, empty, from, EMPTY } from 'rxjs'
+import { switchMap, map, catchError } from 'rxjs/operators'
+import { HttpClient } from '@angular/common/http'
 import {
   DestinyActivityDefinition,
   DestinyInventoryItemDefinition,
@@ -14,44 +14,44 @@ import {
   ServerResponse,
   DestinyRaceDefinition,
   DestinyClassDefinition,
-} from 'bungie-api-ts/destiny2';
+} from 'bungie-api-ts/destiny2'
 
 @Injectable({
   providedIn: 'root',
 })
 export class ManifestService {
-  alwaysLoadRemote = false;
+  alwaysLoadRemote = false
 
-  version: string | null = null;
+  version: string | null = null
   state: ManifestServiceState = {
     loaded: false,
-  };
-  state$ = new BehaviorSubject<ManifestServiceState>(this.state);
+  }
+  state$ = new BehaviorSubject<ManifestServiceState>(this.state)
   /** A signal for when we've loaded a new remote manifest. */
-  newManifest$ = new Subject();
+  newManifest$ = new Subject()
   defs: {
     Activity?: {
-      get(hash: number): DestinyActivityDefinition;
-    };
+      get(hash: number): DestinyActivityDefinition
+    }
     InventoryItem?: {
-      get(hash: number): DestinyInventoryItemDefinition;
-    };
+      get(hash: number): DestinyInventoryItemDefinition
+    }
     ActivityMode?: {
-      get(modeType: number): DestinyActivityModeDefinition;
-    };
+      get(modeType: number): DestinyActivityModeDefinition
+    }
     DestinyRace?: {
-      get(hash: number): DestinyRaceDefinition;
-    };
+      get(hash: number): DestinyRaceDefinition
+    }
     DestinyClass?: {
-      get(hash: number): DestinyClassDefinition;
-    };
-  };
+      get(hash: number): DestinyClassDefinition
+    }
+  }
 
-  private localStorageKey = 'd2-manifest-version';
-  private idbKey = 'd2-manifest';
+  private localStorageKey = 'd2-manifest-version'
+  private idbKey = 'd2-manifest'
 
   constructor(private http: HttpClient) {
-    const tables = ['Activity', 'InventoryItem', 'ActivityMode', 'DestinyRace', 'DestinyClass'];
+    const tables = ['Activity', 'InventoryItem', 'ActivityMode', 'DestinyRace', 'DestinyClass']
 
     from(
       getDestinyManifest((config: { url: string; method: 'GET' | 'POST'; params: any; body: any }) =>
@@ -65,86 +65,86 @@ export class ManifestService {
     )
       .pipe(
         switchMap((res: ServerResponse<DestinyManifest>) => {
-          const data = res.Response;
+          const data = res.Response
           // await settingsReady; // wait for settings to be ready
-          const language = 'en';
-          const path = data.jsonWorldContentPaths[language] || data.jsonWorldContentPaths.en;
+          const language = 'en'
+          const path = data.jsonWorldContentPaths[language] || data.jsonWorldContentPaths.en
 
           // Use the path as the version, rather than the "version" field, because
           // Bungie can update the manifest file without changing that version.
-          const version = path;
-          this.version = version;
+          const version = path
+          this.version = version
 
           try {
             if (this.alwaysLoadRemote) {
-              throw new Error('Testing - always load remote');
+              throw new Error('Testing - always load remote')
             }
 
             // this.statusText = `${t('Manifest.Load')}...`;
-            const currentManifestVersion = localStorage.getItem(this.localStorageKey);
-            const currentWhitelist = JSON.parse(localStorage.getItem(this.localStorageKey + '-whitelist') || '[]');
+            const currentManifestVersion = localStorage.getItem(this.localStorageKey)
+            const currentWhitelist = JSON.parse(localStorage.getItem(this.localStorageKey + '-whitelist') || '[]')
             if (currentManifestVersion === version && deepEqual(currentWhitelist, tables)) {
-              const manifest = get<object>(this.idbKey);
+              const manifest = get<object>(this.idbKey)
               if (!manifest) {
-                throw new Error('Empty cached manifest file');
+                throw new Error('Empty cached manifest file')
               }
-              return manifest;
+              return manifest
             } else {
-              throw new Error(`version mismatch: ${version} ${currentManifestVersion}`);
+              throw new Error(`version mismatch: ${version} ${currentManifestVersion}`)
             }
           } catch (e) {
             return this.http.get(`https://www.bungie.net${path}`, { withCredentials: false }).pipe(
               map((response) => {
-                const manifest = _.pick(response, ...tables.map((t) => `Destiny${t}Definition`));
+                const manifest = _.pick(response, ...tables.map((t) => `Destiny${t}Definition`))
 
                 // We intentionally don't wait on this promise
-                this.saveManifestToIndexedDB(manifest, version, tables);
+                this.saveManifestToIndexedDB(manifest, version, tables)
 
-                this.newManifest$.next();
-                return manifest;
+                this.newManifest$.next()
+                return manifest
               })
-            );
+            )
           }
         }),
         map((manifest) => {
           if (!manifest.DestinyActivityDefinition) {
-            throw new Error('Manifest corrupted, please reload');
+            throw new Error('Manifest corrupted, please reload')
           }
-          this.defs = {};
+          this.defs = {}
           tables.forEach((tableShort) => {
-            const table = `Destiny${tableShort}Definition`;
+            const table = `Destiny${tableShort}Definition`
             if (tableShort === 'ActivityMode') {
               this.defs[tableShort] = {
                 get(modeType: number) {
-                  const dbTable = manifest[table];
+                  const dbTable = manifest[table]
                   if (!dbTable) {
-                    throw new Error(`Table ${table} does not exist in the manifest`);
+                    throw new Error(`Table ${table} does not exist in the manifest`)
                   }
                   for (const hash in dbTable) {
                     if (dbTable[hash].modeType === modeType) {
-                      return dbTable[hash];
+                      return dbTable[hash]
                     }
                   }
-                  throw new Error(`ModeType ${modeType} does not exist in the manifest`);
+                  throw new Error(`ModeType ${modeType} does not exist in the manifest`)
                 },
-              };
+              }
             } else {
               this.defs[tableShort] = {
                 get(name: number) {
-                  const dbTable = manifest[table];
+                  const dbTable = manifest[table]
                   if (!dbTable) {
-                    throw new Error(`Table ${table} does not exist in the manifest`);
+                    throw new Error(`Table ${table} does not exist in the manifest`)
                   }
-                  return dbTable[name];
+                  return dbTable[name]
                 },
-              };
+              }
             }
-          });
-          this.loaded = true;
+          })
+          this.loaded = true
         }),
         catchError((e, caught) => {
-          const message = e.message || e;
-          console.error(message);
+          const message = e.message || e
+          console.error(message)
           // const statusText = t('Manifest.Error', { error: message });
 
           if (e instanceof TypeError || e.status === -1) {
@@ -160,31 +160,31 @@ export class ManifestService {
             // });
           } else {
             // Something may be wrong with the manifest
-            this.deleteManifestFile();
+            this.deleteManifestFile()
           }
-          return EMPTY;
+          return EMPTY
         })
       )
-      .subscribe();
+      .subscribe()
   }
 
   set loaded(loaded: boolean) {
-    this.setState({ loaded, error: undefined });
+    this.setState({ loaded, error: undefined })
   }
 
   set statusText(statusText: string) {
-    this.setState({ statusText });
+    this.setState({ statusText })
   }
 
   // This is not an anonymous arrow function inside loadManifestRemote because of https://bugs.webkit.org/show_bug.cgi?id=166879
   private async saveManifestToIndexedDB(typedArray: object, version: string, tableWhitelist: string[]) {
     try {
-      await set(this.idbKey, typedArray);
-      console.log(`Sucessfully stored manifest file.`);
-      localStorage.setItem(this.localStorageKey, version);
-      localStorage.setItem(this.localStorageKey + '-whitelist', JSON.stringify(tableWhitelist));
+      await set(this.idbKey, typedArray)
+      console.log(`Sucessfully stored manifest file.`)
+      localStorage.setItem(this.localStorageKey, version)
+      localStorage.setItem(this.localStorageKey + '-whitelist', JSON.stringify(tableWhitelist))
     } catch (e) {
-      console.error('Error saving manifest file', e);
+      console.error('Error saving manifest file', e)
       // showNotification({
       //   title: t('Help.NoStorage'),
       //   body: t('Help.NoStorageMessage'),
@@ -194,8 +194,8 @@ export class ManifestService {
   }
 
   private deleteManifestFile() {
-    localStorage.removeItem(this.localStorageKey);
-    del(this.idbKey);
+    localStorage.removeItem(this.localStorageKey)
+    del(this.idbKey)
   }
 
   /**
@@ -204,13 +204,13 @@ export class ManifestService {
    */
 
   private setState(newState: Partial<ManifestServiceState>) {
-    this.state = { ...this.state, ...newState };
-    this.state$.next(this.state);
+    this.state = { ...this.state, ...newState }
+    this.state$.next(this.state)
   }
 }
 
 export interface ManifestServiceState {
-  loaded: boolean;
-  error?: Error;
-  statusText?: string;
+  loaded: boolean
+  error?: Error
+  statusText?: string
 }

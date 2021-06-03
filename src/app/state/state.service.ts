@@ -23,7 +23,6 @@ import {
   DestinyPostGameCarnageReportData,
   getPostGameCarnageReport,
   GetPostGameCarnageReportParams,
-  DestinyHistoricalStatsPeriodGroup,
 } from 'bungie-api-ts/destiny2'
 import { NgxIndexedDBService } from 'ngx-indexed-db'
 import { TwitchQueueService } from '../queue/twitch-queue.service'
@@ -34,10 +33,11 @@ import { TwitchAccount, TwitchVideo, NamesDbEntry, DestinyPostGameCarnageReportD
 })
 export class StateService {
   private bungieCurrentUser$: BehaviorSubject<ServerResponse<UserMembershipData>> = new BehaviorSubject(undefined)
-  private bungieProfiles$: BehaviorSubject<Array<BehaviorSubject<ServerResponse<DestinyProfileResponse>>>> = new BehaviorSubject(undefined)
+  private bungieProfiles$: BehaviorSubject<Array<BehaviorSubject<ServerResponse<DestinyProfileResponse>>>> = new BehaviorSubject([])
   private bungieActivityHistories$: BehaviorSubject<
     Array<Observable<Array<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>>>>
-  > = new BehaviorSubject(undefined)
+  > = new BehaviorSubject([])
+  private characterIds$: BehaviorSubject<Array<string>> = new BehaviorSubject([])
 
   private instanceIdSet = new Set()
   private membershipNamesSet = new Set()
@@ -48,6 +48,7 @@ export class StateService {
     [twitchId: string]: BehaviorSubject<{
       videos: TwitchVideo[]
       twitchId: string
+      twitchProfileImage: string
       updated: string
     }>
   } = {}
@@ -91,28 +92,14 @@ export class StateService {
     private twitchQueue: TwitchQueueService,
     private dbService: NgxIndexedDBService
   ) {
-    this.instancesWithClips$ = combineLatest([
-      this.bungieActivityHistories$.pipe(
-        flatMap((activityHistories) => activityHistories || EMPTY),
-        flatMap((activityHistories) => activityHistories || EMPTY),
-        switchMap((activityHistories) => combineLatest(activityHistories) || EMPTY)
-      ),
-      this.pgcrsDbState,
-    ]).pipe(
-      map(([serverResponses, pgcrsDbState]) => {
-        let instances: DestinyHistoricalStatsPeriodGroup[] = []
-        for (const res of serverResponses) {
-          if (res?.Response?.activities) {
-            instances = [...instances, ...res?.Response?.activities]
-          }
-        }
+    this.instancesWithClips$ = combineLatest([this.characterIds$, this.pgcrsDbState]).pipe(
+      map(([characterIds, pgcrsDbState]) => {
         const pgcrs: DestinyPostGameCarnageReportData[] = []
-        for (const instance of instances) {
-          if (pgcrsDbState[instance?.activityDetails?.instanceId]?.response) {
-            const pgcr = JSON.parse(
-              pgcrsDbState[instance?.activityDetails?.instanceId]?.response
-            ) as DestinyPostGameCarnageReportDataExtended
-            if (pgcr) {
+        const pgcrKeys = Object.keys(pgcrsDbState)
+        for (const key of pgcrKeys) {
+          if (pgcrsDbState[key]?.response) {
+            const pgcr = JSON.parse(pgcrsDbState[key]?.response) as DestinyPostGameCarnageReportDataExtended
+            if (pgcr && pgcr.entries.some((entry) => characterIds.includes(entry.characterId))) {
               if (pgcr?.entries?.length) {
                 const twitchClipsArray: Array<Observable<Array<TwitchVideo>>> = []
                 for (const entry of pgcr?.entries) {
@@ -150,6 +137,7 @@ export class StateService {
                               this.twitchVideosDbState[account.id] = new BehaviorSubject({
                                 videos: [],
                                 twitchId: account.id,
+                                twitchProfileImage: account.profile_image_url,
                                 updated: undefined,
                               })
                             }
@@ -165,6 +153,7 @@ export class StateService {
                           twitchVideosDbEntries: {
                             videos: TwitchVideo[]
                             twitchId: string
+                            twitchProfileImage: string
                             updated: string
                           }[]
                         ) => {
@@ -217,18 +206,23 @@ export class StateService {
                                       if (video.user_name === namesDbEntry?.nameObject?.twitchDisplayName) {
                                         return 'twitchDisplayName'
                                       }
-                                      for (const key of Object.keys(namesDbEntry.nameObject)) {
+                                      for (const k of Object.keys(namesDbEntry.nameObject)) {
                                         if (
                                           namesDbEntry?.nameObject &&
-                                          namesDbEntry?.nameObject[key] &&
-                                          video.user_name === namesDbEntry?.nameObject[key]
+                                          namesDbEntry?.nameObject[k] &&
+                                          video.user_name === namesDbEntry?.nameObject[k]
                                         ) {
-                                          return key as NameMatchTypes
+                                          return k as NameMatchTypes
                                         }
                                       }
                                     })
                                   )
-                                  const videoWithOffset = { ...video, offset: twitchOffset, matchType }
+                                  const videoWithOffset = {
+                                    ...video,
+                                    offset: twitchOffset,
+                                    matchType,
+                                    twitchProfileImage: twitchVideosDbEntry.twitchProfileImage,
+                                  }
                                   videos.push(videoWithOffset)
                                 }
                               }
@@ -255,8 +249,8 @@ export class StateService {
                   })
                 )
               }
+              pgcrs.push(pgcr)
             }
-            pgcrs.push(pgcr)
           }
         }
         return pgcrs
@@ -321,6 +315,7 @@ export class StateService {
           switchMap((profiles) => {
             if (profiles?.length) {
               const activityHistories: Array<Observable<Array<BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>>>>> = []
+              const characterIds: Array<string> = []
               for (const profile$ of profiles) {
                 const activityHistory$ = profile$.pipe(
                   switchMap((profile) => {
@@ -331,6 +326,7 @@ export class StateService {
                       const characters = profile?.Response?.characters?.data
                       for (const characterId in characters) {
                         if (characters[characterId]) {
+                          characterIds.push(characterId)
                           const action = getActivityHistory
                           const behaviorSubject: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>> = new BehaviorSubject(
                             undefined
@@ -362,6 +358,26 @@ export class StateService {
           })
         )
         .subscribe((res) => this.bungieActivityHistories$.next(res))
+
+      this.bungieProfiles$
+        .pipe(
+          switchMap((profiles) => {
+            return combineLatest(profiles)
+          }),
+          map((profiles) => {
+            const characterIds = []
+            for (const profile of profiles) {
+              const characters = profile?.Response?.characters?.data
+              for (const character in characters) {
+                if (characters[character]) {
+                  characterIds.push(characters[character].characterId)
+                }
+              }
+            }
+            return characterIds
+          })
+        )
+        .subscribe((res) => this.characterIds$.next(res))
 
       this.bungieActivityHistories$.subscribe((profiles) => {
         if (profiles) {
@@ -554,6 +570,7 @@ export class StateService {
                                                 this.twitchVideosDbState[account.id] = new BehaviorSubject({
                                                   videos: [],
                                                   twitchId: account.id,
+                                                  twitchProfileImage: account.profile_image_url,
                                                   updated: undefined,
                                                 })
                                               }
@@ -596,6 +613,7 @@ export class StateService {
                                                             twitchVideosDbEntry = {
                                                               videos: res.data,
                                                               twitchId: account.id,
+                                                              twitchProfileImage: account.profile_image_url,
                                                               updated,
                                                             }
                                                             this.twitchVideosDbState[account.id].next(twitchVideosDbEntry)
@@ -826,6 +844,7 @@ export class StateService {
           entries: {
             videos: TwitchVideo[]
             twitchId: string
+            twitchProfileImage: string
             updated: string
           }[]
         ) => {

@@ -36,6 +36,7 @@ export interface TwitchVideo {
   language: string
   type: string
   duration: string
+  twitchProfileImage?: string
   offset?: string
   play?: boolean
   matchType?: Observable<NameMatchTypes>

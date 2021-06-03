@@ -2,7 +2,10 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": []
+    "types": [],
+  },
+  "angularCompilerOptions": {
+    "strictTemplates": true
   },
   "files": [
     "src/main.ts",

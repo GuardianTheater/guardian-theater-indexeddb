@@ -1,17 +1,19 @@
-import { Component, OnInit } from '@angular/core'
+import { AfterViewInit, Component, OnInit } from '@angular/core'
 import { BungieAuthService } from './auth/bungie-auth/bungie-auth.service'
 import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service'
 import { StateService } from './state/state.service'
 import { TwitchQueueService } from './queue/twitch-queue.service'
 import { BungieQueueService } from './queue/bungie-queue.service'
-import { QueueCount, DestinyPostGameCarnageReportDataExtended, TwitchVideo } from './types'
+import { QueueCount, DestinyPostGameCarnageReportDataExtended, TwitchVideo, DestinyPostGameCarnageReportEntryExtended } from './types'
+import { DestinyPlayer } from 'bungie-api-ts/destiny2'
 
+declare var twttr: any
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, AfterViewInit {
   title = 'guardian-theater-indexeddb'
   instanceIdSet: Set<string>
   instances: DestinyPostGameCarnageReportDataExtended[]
@@ -52,6 +54,10 @@ export class AppComponent implements OnInit {
     })
   }
 
+  ngAfterViewInit(): void {
+    twttr.widgets.load()
+  }
+
   loginBungie() {
     this.authBungie.login()
   }
@@ -74,5 +80,36 @@ export class AppComponent implements OnInit {
     this.instances.forEach((inst) => (inst.watching = false))
     instance.watching = true
     video.play = true
+  }
+
+  refresh() {
+    location.reload()
+  }
+
+  reset() {
+    localStorage.clear()
+    sessionStorage.clear()
+    indexedDB.deleteDatabase('GtDb')
+    indexedDB.deleteDatabase('keyval-store')
+    location.reload()
+  }
+
+  linkToBungieProfile(player: DestinyPlayer) {
+    window.open(
+      `https://www.bungie.net/en/Profile/${player.destinyUserInfo.membershipType}/${player.destinyUserInfo.membershipId}/`,
+      '_blank'
+    )
+  }
+
+  linkToBungieActivity(instance: DestinyPostGameCarnageReportDataExtended, entry: DestinyPostGameCarnageReportEntryExtended) {
+    window.open(`https://www.bungie.net/en/PGCR/${instance.activityDetails.instanceId}?character=${entry.characterId}`, '_blank')
+  }
+
+  linkToTwitchProfile(video: TwitchVideo) {
+    window.open(`https://www.twitch.tv/${video.user_name}`)
+  }
+
+  linkToTwitchVideo(video: TwitchVideo) {
+    window.open(`${video.url}?t=${video.offset}`, '_blank')
   }
 }

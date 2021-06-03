@@ -29,7 +29,7 @@
       <button mat-button (click)="logoutBungie()" *ngIf="authState.bungie">Bungie Logout</button>
       <button mat-raised-button color="primary" (click)="loginTwitch()" *ngIf="!authState.twitch">Twitch Login</button>
       <button mat-button (click)="logoutTwitch()" *ngIf="authState.twitch">Twitch Logout</button>
-      <a mat-raised-button color="accent" href="https://twitch.amazon.com/tp/oauth/start/bungie" target="_blank">Link Accounts</a>
+      <a mat-raised-button color="accent" href="https://www.bungie.net/LinkTwitch" target="_blank">Link Accounts</a>
       <a mat-raised-button color="accent" href="https://github.com/GuardianTheater/guardian-theater-indexeddb/issues" target="_blank"
         >Issues</a
       >
@@ -109,6 +109,10 @@
         </div>
       </div>
     </mat-card-content>
+    <mat-card-actions>
+      <a (click)="refresh()" mat-raised-button color="accent">Soft Refresh</a>
+      <a (click)="reset()" mat-raised-button color="warn">Hard Reset</a>
+    </mat-card-actions>
   </mat-card>
   <ng-container *ngFor="let instance of instances">
     <ng-container *ngIf="(instance.twitchClips | async)?.length">
@@ -116,19 +120,28 @@
         <ng-container *ngFor="let video of entry.twitchClips | async">
           <mat-card>
             <mat-card-header>
-              <img
-                *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
+              <!-- <img
                 mat-card-avatar
+                class="activityIcon"
+                *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 [src]="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
                 [alt]="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
-              /><img
-                mat-card-avatar
+              /> --><img
                 *ngIf="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                (click)="linkToBungieProfile(entry.player)"
+                mat-card-avatar
+                class="emblem clickable"
                 [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
                 [alt]="entry.player.destinyUserInfo.displayName"
               />
-              <mat-card-title>{{ entry.player.destinyUserInfo.displayName }}</mat-card-title>
-              <mat-card-subtitle *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async">
+              <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
+                entry.player.destinyUserInfo.displayName
+              }}</mat-card-title>
+              <mat-card-subtitle
+                *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
+                (click)="linkToBungieActivity(instance, entry)"
+                class="clickable"
+              >
                 {{ instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
                 }}<span
                   *ngIf="
@@ -152,23 +165,38 @@
               >
               </iframe>
             </div>
-            <mat-card-content>
-              <span class="twitchName">
+            <mat-card-header>
+              <img
+                (click)="linkToTwitchProfile(video)"
+                mat-card-avatar
+                class="twitchProfileImage clickable"
+                *ngIf="video.twitchProfileImage"
+                [src]="video.twitchProfileImage"
+                [alt]="video.user_name"
+              />
+              <mat-card-title class="clickable" (click)="linkToTwitchProfile(video)">
                 {{ video.user_name }}
-              </span>
-              <span class="matchType"
+              </mat-card-title>
+              <!-- <span class="matchType"
                 ><mat-icon *ngIf="(video.matchType | async) === 'twitchDisplayName'">verified</mat-icon> {{ video.matchType | async }}</span
-              >
-              <p>{{ video?.title }}</p>
-            </mat-card-content>
+              > -->
+              <mat-card-subtitle class="clickable" (click)="linkToTwitchVideo(video)">{{ video?.title }}</mat-card-subtitle>
+            </mat-card-header>
             <mat-card-actions>
-              <a target="_blank" [href]="video.url + '?t=' + video.offset" mat-button>{{ video?.offset }}</a>
+              <a target="_blank" (click)="linkToTwitchVideo(video)" mat-button>{{ video?.offset }}</a>
             </mat-card-actions>
           </mat-card>
         </ng-container>
       </ng-container>
     </ng-container>
   </ng-container>
+  <mat-card class="twitter-embed">
+    <mat-card-content>
+      <a class="twitter-timeline" data-height="500" data-theme="dark" href="https://twitter.com/guardtheater?ref_src=twsrc%5Etfw"
+        >Tweets by guardtheater</a
+      >
+    </mat-card-content>
+  </mat-card>
 </div>
 
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
