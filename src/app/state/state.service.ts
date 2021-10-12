@@ -9,7 +9,7 @@ import {
   getMembershipDataById,
   GetMembershipDataByIdParams,
 } from 'bungie-api-ts/user'
-import { switchMap, map, take, debounceTime, flatMap, distinctUntilChanged, filter, withLatestFrom } from 'rxjs/operators'
+import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom } from 'rxjs/operators'
 import { BungieQueueService } from '../queue/bungie-queue.service'
 import {
   DestinyProfileResponse,
@@ -79,7 +79,8 @@ export class StateService {
   // bungieProfiles: {
   //   [key: string]: DestinyProfileResponse;
   // } = {};
-  instancesWithClips$: Observable<DestinyPostGameCarnageReportData[]>
+  instancesWithClips$: Observable<DestinyPostGameCarnageReportDataExtended[]>
+  clipCount$: Observable<number>
 
   // membershipNames: {
   //   [key: string]: BehaviorSubject<string[]>;

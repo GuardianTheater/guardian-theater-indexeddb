@@ -6,6 +6,8 @@ import { TwitchQueueService } from './queue/twitch-queue.service'
 import { BungieQueueService } from './queue/bungie-queue.service'
 import { QueueCount, DestinyPostGameCarnageReportDataExtended, TwitchVideo, DestinyPostGameCarnageReportEntryExtended } from './types'
 import { DestinyPlayer } from 'bungie-api-ts/destiny2'
+import { combineLatest } from 'rxjs'
+import { switchMap, map } from 'rxjs/operators'
 
 declare var twttr: any
 @Component({
@@ -17,6 +19,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   title = 'guardian-theater-indexeddb'
   instanceIdSet: Set<string>
   instances: DestinyPostGameCarnageReportDataExtended[]
+  clipCount = 0
 
   queueCount: {
     [queue: string]: {
@@ -34,7 +37,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     public state: StateService,
     private twitchQueue: TwitchQueueService,
     private bungieQueue: BungieQueueService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.instanceIdSet = new Set()
@@ -43,15 +46,20 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.queueCount.bungie = this.bungieQueue.queueCount
     this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res))
     this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res))
-    this.state.instancesWithClips$.subscribe((instances) => {
-      for (const instance of instances) {
-        if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
-          this.instanceIdSet.add(instance.activityDetails.instanceId)
-          this.instances.push(instance)
-          this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10))
+    this.state.instancesWithClips$.pipe(
+      switchMap(instances => {
+        for (const instance of instances) {
+          if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
+            this.instanceIdSet.add(instance.activityDetails.instanceId)
+            this.instances.push(instance)
+            this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10))
+          }
         }
-      }
-    })
+        return combineLatest(instances.map(i => i.twitchClips))
+      }),
+      map(clips =>
+        this.clipCount = clips.reduce((acc, cur) => acc + cur.length, 0)
+      )).subscribe()
   }
 
   ngAfterViewInit(): void {
