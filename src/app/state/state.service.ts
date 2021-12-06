@@ -9,7 +9,7 @@ import {
   getMembershipDataById,
   GetMembershipDataByIdParams,
 } from 'bungie-api-ts/user'
-import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom } from 'rxjs/operators'
+import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom, tap } from 'rxjs/operators'
 import { BungieQueueService } from '../queue/bungie-queue.service'
 import {
   DestinyProfileResponse,
@@ -294,15 +294,15 @@ export class StateService {
                 }
                 this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params)
               }
-              // const action = getProfile;
-              // const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined);
-              // destinyProfileResponses.push(behaviorSubject);
+              // const action = getProfile
+              // const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined)
+              // destinyProfileResponses.push(behaviorSubject)
               // const params: GetProfileParams = {
-              //   destinyMembershipId: '4611686018438442802',
+              //   destinyMembershipId: '',
               //   membershipType: 1,
               //   components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
-              // };
-              // this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params);
+              // }
+              // this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params)
               return of(destinyProfileResponses)
             } else {
               return EMPTY
@@ -329,19 +329,21 @@ export class StateService {
                         if (characters[characterId]) {
                           characterIds.push(characterId)
                           const action = getActivityHistory
-                          const behaviorSubject: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>> = new BehaviorSubject(
-                            undefined
-                          )
-                          destinyActivityHistoryResults.push(behaviorSubject)
-                          const params: GetActivityHistoryParams = {
-                            characterId,
-                            count: 250,
-                            destinyMembershipId: profile?.Response?.profile?.data?.userInfo?.membershipId,
-                            membershipType: profile?.Response?.profile?.data?.userInfo?.membershipType,
-                            mode: DestinyActivityModeType.None,
-                            page: 0,
+                          for (let i = 0; i < 7; i++) {
+                            const behaviorSubject: BehaviorSubject<ServerResponse<DestinyActivityHistoryResults>> = new BehaviorSubject(
+                              undefined
+                            )
+                            destinyActivityHistoryResults.push(behaviorSubject)
+                            const params: GetActivityHistoryParams = {
+                              characterId,
+                              count: 250,
+                              destinyMembershipId: profile?.Response?.profile?.data?.userInfo?.membershipId,
+                              membershipType: profile?.Response?.profile?.data?.userInfo?.membershipType,
+                              mode: DestinyActivityModeType.None,
+                              page: i,
+                            }
+                            this.bungieQueue.addToQueue('getActivityHistory', action, behaviorSubject, params)
                           }
-                          this.bungieQueue.addToQueue('getActivityHistory', action, behaviorSubject, params)
                         }
                       }
                       return of(destinyActivityHistoryResults)
@@ -441,7 +443,6 @@ export class StateService {
                             if (pgcr?.entries?.length) {
                               for (const entry of pgcr?.entries) {
                                 const membershipId = entry?.player?.destinyUserInfo?.membershipId
-
                                 this.lastEncounteredDbState
                                   .pipe(
                                     take(1),
@@ -812,8 +813,11 @@ export class StateService {
           }[]
         ) => {
           const pgcrsDbState = {}
+          const offset = new Date(new Date().setDate(new Date().getDate() - 60))
           for (const entry of entries) {
-            pgcrsDbState[entry.instanceId] = entry
+            if (new Date(entry.period) > offset) {
+              pgcrsDbState[entry.instanceId] = entry
+            }
           }
           this.pgcrsDbState.next(pgcrsDbState)
           return pgcrsDbState

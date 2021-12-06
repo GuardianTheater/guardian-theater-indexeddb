@@ -99,11 +99,15 @@
       </div>
     </mat-card-content>
   </mat-card>
+  <mat-card *ngIf="hiddenVids.size > 0">
+    <h2>Hidden Streams</h2>
+    <button *ngFor="let id of hiddenVids" (click)="showVideos(id)" mat-button>Show {{hiddenNames[id]}}</button>
+  </mat-card>
   <ng-container *ngFor="let instance of instances">
     <ng-container *ngIf="(instance.twitchClips | async)?.length">
       <ng-container *ngFor="let entry of instance?.entries">
         <ng-container *ngFor="let video of entry.twitchClips | async">
-          <mat-card>
+          <mat-card *ngIf="!hiddenVids.has(entry.player.destinyUserInfo.membershipId + video.user_id)">
             <mat-card-header>
               <!-- <img
                 mat-card-avatar
@@ -149,7 +153,8 @@
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-actions>
-              <a target="_blank" (click)="linkToTwitchVideo(video)" mat-button>{{ video?.offset }}</a>
+              <button (click)="linkToTwitchVideo(video)" mat-button>{{ video?.offset }}</button>
+              <button (click)="hideVideos(entry, video)" mat-button>Hide {{video.user_name}}</button>
             </mat-card-actions>
           </mat-card>
         </ng-container>

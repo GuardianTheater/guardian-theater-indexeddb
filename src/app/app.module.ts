@@ -180,4 +180,4 @@ import { TwitchPipe } from './pipes/twitch.pipe'
   providers: [],
   bootstrap: [AppComponent],
 })
-export class AppModule {}
+export class AppModule { }

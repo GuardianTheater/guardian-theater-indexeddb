@@ -20,6 +20,8 @@ export class AppComponent implements OnInit, AfterViewInit {
   instanceIdSet: Set<string>
   instances: DestinyPostGameCarnageReportDataExtended[]
   clipCount = 0
+  hiddenVids = new Set<string>()
+  hiddenNames = {}
 
   queueCount: {
     [queue: string]: {
@@ -37,7 +39,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     public state: StateService,
     private twitchQueue: TwitchQueueService,
     private bungieQueue: BungieQueueService
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.instanceIdSet = new Set()
@@ -46,20 +48,21 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.queueCount.bungie = this.bungieQueue.queueCount
     this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res))
     this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res))
-    this.state.instancesWithClips$.pipe(
-      switchMap(instances => {
-        for (const instance of instances) {
-          if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
-            this.instanceIdSet.add(instance.activityDetails.instanceId)
-            this.instances.push(instance)
-            this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10))
+    this.state.instancesWithClips$
+      .pipe(
+        switchMap((instances) => {
+          for (const instance of instances) {
+            if (!this.instanceIdSet.has(instance.activityDetails.instanceId)) {
+              this.instanceIdSet.add(instance.activityDetails.instanceId)
+              this.instances.push(instance)
+              this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10))
+            }
           }
-        }
-        return combineLatest(instances.map(i => i.twitchClips))
-      }),
-      map(clips =>
-        this.clipCount = clips.reduce((acc, cur) => acc + cur.length, 0)
-      )).subscribe()
+          return combineLatest(instances.map((i) => i.twitchClips))
+        }),
+        map((clips) => (this.clipCount = clips.reduce((acc, cur) => acc + cur.length, 0)))
+      )
+      .subscribe()
   }
 
   ngAfterViewInit(): void {
@@ -119,5 +122,14 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   linkToTwitchVideo(video: TwitchVideo) {
     window.open(`${video.url}?t=${video.offset}`, '_blank')
+  }
+
+  hideVideos(entry: DestinyPostGameCarnageReportEntryExtended, video: TwitchVideo) {
+    this.hiddenNames[entry.player.destinyUserInfo.membershipId + video.user_id] = video.user_name
+    this.hiddenVids.add(entry.player.destinyUserInfo.membershipId + video.user_id)
+  }
+
+  showVideos(id: string) {
+    this.hiddenVids.delete(id)
   }
 }
