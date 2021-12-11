@@ -19,9 +19,10 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ManifestPipe } from './manifest/manifest.pipe'
 import { TwitchPipe } from './pipes/twitch.pipe'
+import { BadgePipe } from './pipes/badge.pipe'
 
 @NgModule({
-  declarations: [AppComponent, ManifestPipe, TwitchPipe],
+  declarations: [AppComponent, ManifestPipe, TwitchPipe, BadgePipe],
   imports: [
     HttpClientModule,
     BrowserModule,
@@ -180,4 +181,4 @@ import { TwitchPipe } from './pipes/twitch.pipe'
   providers: [],
   bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

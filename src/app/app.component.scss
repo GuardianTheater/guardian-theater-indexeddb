@@ -35,7 +35,7 @@
 }
 
 .twitter-embed {
-  padding: 0
+  padding: 0;
 }
 
 .logo-card {
@@ -46,4 +46,20 @@
 .mat-card-actions .mat-raised-button,
 .mat-card-actions .mat-stroked-button {
   margin: 0 0 8px 8px;
+}
+
+.mat-card-title {
+  display: flex;
+}
+
+.badge.sponsor {
+  background: #b798c9;
+  padding: 0.25em 0.3em 0.25em 0.25em;
+  font-size: 0.5em;
+  border-radius: 0.25em;
+  height: 1em;
+  line-height: 1em;
+  margin: 0.25em 0.75em;
+  text-shadow: 1px 1px #563467;
+  cursor: default;
 }

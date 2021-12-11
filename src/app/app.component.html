@@ -121,7 +121,10 @@
                 [alt]="entry.player.destinyUserInfo.displayName" />
               <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
                 entry.player.destinyUserInfo.displayName
-                }}</mat-card-title>
+                }}
+                <span *ngIf="entry.player | badge: 'sponsor'" class="badge sponsor">Sponsor</span>
+              </mat-card-title>
+
               <mat-card-subtitle
                 *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
                 (click)="linkToBungieActivity(instance, entry)" class="clickable">
