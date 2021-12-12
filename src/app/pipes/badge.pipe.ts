@@ -19,6 +19,7 @@ export class BadgePipe implements PipeTransform {
     '4611686018433587255',
     '4611686018433723819',
     '4611686018433857896',
+    '4611686018436136301',
     '4611686018438951937',
     '4611686018439288866',
     '4611686018440031242',
@@ -44,7 +45,6 @@ export class BadgePipe implements PipeTransform {
   transform(player: DestinyPlayer, type: string): any {
     switch (type) {
       case 'sponsor':
-        console.log(player)
         if (this.sponsors.has(player.destinyUserInfo.membershipId)) {
           return true
         }
