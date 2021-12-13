@@ -77,13 +77,14 @@
       <br />
       <div *ngIf="authState.bungie">
         <h2>Xbox Queue</h2>
-        <div>
+        <div *ngIf="!queueCount.xbox.getVideos.rateLimited; else elseBlock">
           Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
           {{ queueCount.xbox.getVideos.queued }}<span *ngIf="queueCount.xbox.getVideos.errors">
             - {{queueCount.xbox.getVideos.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.xbox.getVideos.percentage"
             [color]="queueCount.xbox.getVideos.color"></mat-progress-bar>
         </div>
+        <ng-template #elseBlock>Xbox Clip API overloaded, try again later</ng-template>
       </div>
       <br />
       <div>

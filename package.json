@@ -4,6 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "startHost": "ng serve --host dev.guardian.theater",
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",

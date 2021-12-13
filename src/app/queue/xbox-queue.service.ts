@@ -27,6 +27,7 @@ export class XboxQueueService {
       errors: 0,
       percentage: 0,
       color: 'primary',
+      rateLimited: false,
     },
   }
 
@@ -55,14 +56,13 @@ export class XboxQueueService {
   addToQueue(action: 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: any) {
     this.queue$.pipe(take(1)).subscribe((queue) => {
       let alreadyInQueue = false
-      let noNames = false
       if (action === 'getVideos') {
         const queueSet = new Set(queue[action].map((act) => act.payload))
         if (queueSet.has(payload)) {
           alreadyInQueue = true
         }
       }
-      if (!alreadyInQueue && !noNames) {
+      if (!alreadyInQueue) {
         queue[action] = [...queue[action], { behaviorSubject, payload }]
         this.queue$.next(queue)
         this.queueCount[action].queued++
@@ -72,18 +72,26 @@ export class XboxQueueService {
   }
 
   processGetVideos(behaviorSubject: BehaviorSubject<any>, gamertag: string) {
-    this.http.get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`).subscribe(
-      (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
-        behaviorSubject.next(res)
-        this.queueCount.getVideos.completed++
-        this.updateQueue(this.queueCount.getVideos)
-      },
-      (err) => {
-        behaviorSubject.next(err)
-        this.queueCount.getVideos.errors++
-        this.updateQueue(this.queueCount.getVideos)
-      }
-    )
+    if (this.queueCount.getVideos.rateLimited) {
+      this.queueCount.getVideos.errors++
+      this.updateQueue(this.queueCount.getVideos)
+    } else {
+      this.http.get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`).subscribe(
+        (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
+          behaviorSubject.next(res)
+          this.queueCount.getVideos.completed++
+          this.updateQueue(this.queueCount.getVideos)
+        },
+        (err) => {
+          if (err.status === 429) {
+            this.queueCount.getVideos.rateLimited = true
+          }
+          behaviorSubject.next(err)
+          this.queueCount.getVideos.errors++
+          this.updateQueue(this.queueCount.getVideos)
+        }
+      )
+    }
   }
 
   updateQueue(queueCount: QueueCount) {

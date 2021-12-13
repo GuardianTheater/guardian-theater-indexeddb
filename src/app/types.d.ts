@@ -7,6 +7,7 @@ export interface QueueCount {
   errors: number
   percentage: number
   color: 'primary' | 'accent' | 'warn'
+  rateLimited?: boolean
 }
 
 export interface TwitchAccount {
