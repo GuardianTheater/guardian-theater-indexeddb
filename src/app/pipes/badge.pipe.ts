@@ -9,6 +9,8 @@ import { DestinyPlayer } from 'bungie-api-ts/destiny2'
 export class BadgePipe implements PipeTransform {
   constructor(private sanitizer: DomSanitizer, private state: StateService) {}
 
+  creator = new Set(['4611686018445133002'])
+  contributors = new Set(['4611686018429542374'])
   sponsors = new Set([
     '4611686018428421700',
     '4611686018428675156',
@@ -42,15 +44,17 @@ export class BadgePipe implements PipeTransform {
     '4611686018475208326',
   ])
 
-  transform(player: DestinyPlayer, type: string): any {
-    switch (type) {
-      case 'sponsor':
-        if (this.sponsors.has(player.destinyUserInfo.membershipId)) {
-          return true
-        }
-        return false
-      default:
-        return null
+  transform(player: DestinyPlayer): any {
+    if (this.creator.has(player.destinyUserInfo.membershipId)) {
+      const titles = ['Architect', 'Creator', 'Developer', 'Initiator', 'Instigator', 'Originator', 'Producer', 'Progenitor']
+      return titles[Math.floor(Math.random() * titles.length)]
     }
+    if (this.contributors.has(player.destinyUserInfo.membershipId)) {
+      return 'Contributor'
+    }
+    if (this.sponsors.has(player.destinyUserInfo.membershipId)) {
+      return 'Sponsor'
+    }
+    return null
   }
 }
