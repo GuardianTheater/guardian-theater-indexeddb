@@ -654,21 +654,23 @@ export class StateService {
                                                   !lastEncounteredDbEntry ||
                                                   !lastEncounteredDbEntry.period ||
                                                   lastEncountered > lastUpdated ||
-                                                  (lastUpdated < oneHourAgo &&
-                                                    lastEncountered.getFullYear() === lastUpdated.getFullYear() &&
-                                                    lastEncountered.getMonth() === lastUpdated.getMonth() &&
-                                                    lastEncountered.getDate() === lastUpdated.getDate())
+                                                  (lastUpdated < oneHourAgo && lastEncountered > oneDayAgo)
                                                 ) {
                                                   const action = 'getVideos'
                                                   const behaviorSubject = new BehaviorSubject(undefined)
                                                   const payload = gamertag
                                                   this.xboxQueue.addToQueue(action, behaviorSubject, payload)
                                                   behaviorSubject.subscribe(
-                                                    (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
-                                                      if (res?.gameClips) {
+                                                    (res: {
+                                                      gameClips: XboxVideo[]
+                                                      status: string
+                                                      numResults: number
+                                                      description: string
+                                                    }) => {
+                                                      if (res?.gameClips || res?.description === 'no clips returned') {
                                                         const updated = new Date().toISOString()
                                                         const xboxVideosDbEntry = {
-                                                          videos: res.gameClips,
+                                                          videos: res.gameClips || [],
                                                           gamertag,
                                                           updated,
                                                         }
