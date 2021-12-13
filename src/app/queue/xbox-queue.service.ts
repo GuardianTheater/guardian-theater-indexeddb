@@ -31,7 +31,7 @@ export class XboxQueueService {
   }
 
   constructor(private http: HttpClient) {
-    this.queue$.pipe(debounceTime(75)).subscribe((queueDict) => {
+    this.queue$.pipe(debounceTime(200)).subscribe((queueDict) => {
       for (const action of this.actionPriority) {
         const queue = queueDict[action]
         if (queue.length) {
