@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 import _ from 'lodash'
 import { get, set, del } from 'idb-keyval'
 import { deepEqual } from 'fast-equals'
-import { BehaviorSubject, Subject, of, empty, from, EMPTY } from 'rxjs'
+import { BehaviorSubject, Subject, from, EMPTY } from 'rxjs'
 import { switchMap, map, catchError } from 'rxjs/operators'
 import { HttpClient } from '@angular/common/http'
 import {

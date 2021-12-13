@@ -67,6 +67,16 @@
         </div>
       </div>
       <br />
+      <div *ngIf="authState.bungie">
+        <h2>Xbox Queue</h2>
+        <div>
+          Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
+          {{ queueCount.xbox.getVideos.queued }}
+          <mat-progress-bar mode="determinate" [value]="queueCount.xbox.getVideos.percentage"
+            [color]="queueCount.xbox.getVideos.color"></mat-progress-bar>
+        </div>
+      </div>
+      <br />
       <div>
         <h2>{{ authState.twitch ? 'Twitch Queues' : 'Twitch Login Required'}}</h2>
         <div *ngIf="!authState.twitch">
@@ -88,10 +98,10 @@
       </div>
       <br />
       <h2
-        *ngIf="authState.bungie && authState.twitch && (queueCount.twitch.getVideos.percentage === 0 || queueCount.twitch.getVideos.percentage === 100) && (queueCount.twitch.getUsers.percentage === 0 || queueCount.twitch.getUsers.percentage === 100) && (queueCount.bungie.getMembershipDataById.percentage === 0 || queueCount.bungie.getMembershipDataById.percentage === 100) && (queueCount.bungie.getPostGameCarnageReport.percentage === 0 || queueCount.bungie.getPostGameCarnageReport.percentage === 100) && (queueCount.bungie.getActivityHistory.percentage === 0 || queueCount.bungie.getActivityHistory.percentage === 100) && (queueCount.bungie.getProfile.percentage === 0 || queueCount.bungie.getProfile.percentage === 100) && (queueCount.bungie.getMembershipDataForCurrentUser.percentage === 0 || queueCount.bungie.getMembershipDataForCurrentUser.percentage === 100)">
+        *ngIf="authState.bungie && authState.twitch && (queueCount.twitch.getVideos.percentage === 0 || queueCount.twitch.getVideos.percentage === 100) && (queueCount.twitch.getUsers.percentage === 0 || queueCount.twitch.getUsers.percentage === 100) && (queueCount.bungie.getMembershipDataById.percentage === 0 || queueCount.bungie.getMembershipDataById.percentage === 100) && (queueCount.bungie.getPostGameCarnageReport.percentage === 0 || queueCount.bungie.getPostGameCarnageReport.percentage === 100) && (queueCount.bungie.getActivityHistory.percentage === 0 || queueCount.bungie.getActivityHistory.percentage === 100) && (queueCount.bungie.getProfile.percentage === 0 || queueCount.bungie.getProfile.percentage === 100) && (queueCount.bungie.getMembershipDataForCurrentUser.percentage === 0 || queueCount.bungie.getMembershipDataForCurrentUser.percentage === 100) && (queueCount.xbox.getVideos.percentage === 0 || queueCount.xbox.getVideos.percentage === 100)">
         {{ clipCount }} videos found {{ clipCount ? '🥳' : '😞' }}</h2>
       <h2
-        *ngIf="authState.bungie && authState.twitch && ((queueCount.twitch.getVideos.percentage > 0 && queueCount.twitch.getVideos.percentage < 100) || (queueCount.twitch.getUsers.percentage > 0 && queueCount.twitch.getUsers.percentage < 100) || (queueCount.bungie.getMembershipDataById.percentage > 0 && queueCount.bungie.getMembershipDataById.percentage < 100) || (queueCount.bungie.getPostGameCarnageReport.percentage > 0 && queueCount.bungie.getPostGameCarnageReport.percentage < 100) || (queueCount.bungie.getActivityHistory.percentage > 0 && queueCount.bungie.getActivityHistory.percentage < 100) || (queueCount.bungie.getProfile.percentage > 0 && queueCount.bungie.getProfile.percentage < 100) || (queueCount.bungie.getMembershipDataForCurrentUser.percentage > 0 && queueCount.bungie.getMembershipDataForCurrentUser.percentage < 100))">
+        *ngIf="authState.bungie && authState.twitch && ((queueCount.twitch.getVideos.percentage > 0 && queueCount.twitch.getVideos.percentage < 100) || (queueCount.twitch.getUsers.percentage > 0 && queueCount.twitch.getUsers.percentage < 100) || (queueCount.bungie.getMembershipDataById.percentage > 0 && queueCount.bungie.getMembershipDataById.percentage < 100) || (queueCount.bungie.getPostGameCarnageReport.percentage > 0 && queueCount.bungie.getPostGameCarnageReport.percentage < 100) || (queueCount.bungie.getActivityHistory.percentage > 0 && queueCount.bungie.getActivityHistory.percentage < 100) || (queueCount.bungie.getProfile.percentage > 0 && queueCount.bungie.getProfile.percentage < 100) || (queueCount.bungie.getMembershipDataForCurrentUser.percentage > 0 && queueCount.bungie.getMembershipDataForCurrentUser.percentage < 100) || (queueCount.xbox.getVideos.percentage > 0 && queueCount.xbox.getVideos.percentage < 100))">
         Searching for videos...</h2>
       <div>
         Data is cached in your browser to improve load times when you revisit the site. You can use the Hard Reset
@@ -100,13 +110,13 @@
     </mat-card-content>
   </mat-card>
   <mat-card *ngIf="hiddenVids.size > 0">
-    <h2>Hidden Streams</h2>
+    <h2>Hidden Sources</h2>
     <button *ngFor="let id of hiddenVids" (click)="showVideos(id)" mat-button>Show {{hiddenNames[id]}}</button>
   </mat-card>
   <ng-container *ngFor="let instance of instances">
-    <ng-container *ngIf="(instance.twitchClips | async)?.length">
+    <ng-container *ngIf="(instance.twitchVideos | async)?.length || (instance.xboxVideos | async)?.length">
       <ng-container *ngFor="let entry of instance?.entries">
-        <ng-container *ngFor="let video of entry.twitchClips | async">
+        <ng-container *ngFor="let video of entry.twitchVideos | async">
           <mat-card *ngIf="!hiddenVids.has(entry.player.destinyUserInfo.membershipId + video.user_id)">
             <mat-card-header>
               <!-- <img
@@ -120,7 +130,7 @@
                 [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
                 [alt]="entry.player.destinyUserInfo.displayName" />
               <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
-                entry.player.destinyUserInfo.displayName
+                entry.player.destinyUserInfo.bungieGlobalDisplayName || entry.player.destinyUserInfo.displayName
                 }}
                 <span *ngIf="entry.player | badge: 'sponsor'" class="badge sponsor">Sponsor</span>
               </mat-card-title>
@@ -158,6 +168,59 @@
             <mat-card-actions>
               <button (click)="linkToTwitchVideo(video)" mat-button>{{ video?.offset }}</button>
               <button (click)="hideVideos(entry, video)" mat-button>Hide {{video.user_name}}</button>
+            </mat-card-actions>
+          </mat-card>
+        </ng-container>
+        <ng-container *ngFor="let video of entry.xboxVideos | async">
+          <mat-card *ngIf="!hiddenVids.has(entry.player.destinyUserInfo.membershipId + video.xuid)">
+            <mat-card-header>
+              <!-- <img
+                        mat-card-avatar
+                        class="activityIcon"
+                        *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
+                        [src]="instance?.activityDetails?.directorActivityHash | manifest: 'activityIcon' | async"
+                        [alt]="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
+                      /> --><img *ngIf="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                (click)="linkToBungieProfile(entry.player)" mat-card-avatar class="emblem clickable"
+                [src]="entry.player.emblemHash | manifest: 'emblemHash' | async"
+                [alt]="entry.player.destinyUserInfo.displayName" />
+              <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
+                entry.player.destinyUserInfo.bungieGlobalDisplayName || entry.player.destinyUserInfo.displayName
+                }}
+                <span *ngIf="entry.player | badge: 'sponsor'" class="badge sponsor">Sponsor</span>
+              </mat-card-title>
+
+              <mat-card-subtitle
+                *ngIf="instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async"
+                (click)="linkToBungieActivity(instance, entry)" class="clickable">
+                {{ instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async
+                }}<span *ngIf="
+                            (instance?.activityDetails?.directorActivityHash | manifest: 'activityMode' | async) !==
+                            (instance?.activityDetails?.referenceId | manifest: 'activityName' | async)
+                          ">
+                  - {{ instance?.activityDetails?.referenceId | manifest: 'activityName' | async }} - {{
+                  instance?.period | date : 'short' }}</span>
+              </mat-card-subtitle>
+            </mat-card-header>
+            <div mat-card-image>
+              <img *ngIf="!instance.watching || !video.play" class="xbox-embed" (click)="loadVideo(video, instance)"
+                [src]="video.thumbnails[0].uri" />
+              <video *ngIf="instance.watching && video.play" class="xbox-embed" controls autoplay="true"
+                [poster]="video.thumbnails[0].uri" data-setup="{}">
+                <source *ngIf="video.gameClipUris[0].uri" [src]="video.gameClipUris[0].uri" type="video/mp4" />
+              </video>
+            </div>
+            <mat-card-header>
+              <img mat-card-avatar class="twitchProfileImage" src="../assets/xbox.svg" />
+              <mat-card-title>
+                {{ (entry.namesDbEntry | async)?.nameObject.xboxDisplayName }}
+              </mat-card-title>
+              <mat-card-subtitle>Xbox Capture</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-actions>
+              <!-- <button (click)="linkToTwitchVideo(video)" mat-button>{{ video?.offset }}</button> -->
+              <button (click)="hideVideos(entry, video)" mat-button>Hide {{(entry.namesDbEntry |
+                async)?.nameObject.xboxDisplayName}}</button>
             </mat-card-actions>
           </mat-card>
         </ng-container>

@@ -7,7 +7,7 @@
 
 - user authenticates with Twitch
 - search all encountered player names, store connections
-- check all encountered players for clips in activities at least once
+- check all encountered players for videos in activities at least once
 - recheck activities within the past 24 hours if idle
 
 - background
@@ -23,4 +23,4 @@
 - [x] bungieAuth + activity[] -> PGCRs - getPostGameCarnageReport - only if missing from DB
 - [x] bungieAuth + entry[] -> alternative names - getLinkedProfiles - only if missing from DB, add current name if missing
 - [ ] twitchAuth + name[] -> get twitch accounts - only if missing or empty
-- [ ] twitchAuth + entry[] + name[] + accounts[] -> get clips - only if missing or entry fresher than (last check - 24 hours)
+- [ ] twitchAuth + entry[] + name[] + accounts[] -> get videos - only if missing or entry fresher than (last check - 24 hours)

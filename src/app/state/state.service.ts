@@ -8,6 +8,7 @@ import {
   ServerResponse,
   getMembershipDataById,
   GetMembershipDataByIdParams,
+  BungieMembershipType,
 } from 'bungie-api-ts/user'
 import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom, tap } from 'rxjs/operators'
 import { BungieQueueService } from '../queue/bungie-queue.service'
@@ -26,7 +27,8 @@ import {
 } from 'bungie-api-ts/destiny2'
 import { NgxIndexedDBService } from 'ngx-indexed-db'
 import { TwitchQueueService } from '../queue/twitch-queue.service'
-import { TwitchAccount, TwitchVideo, NamesDbEntry, DestinyPostGameCarnageReportDataExtended, NameMatchTypes } from '../types'
+import { XboxQueueService } from '../queue/xbox-queue.service'
+import { TwitchAccount, TwitchVideo, NamesDbEntry, DestinyPostGameCarnageReportDataExtended, NameMatchTypes, XboxVideo } from '../types'
 
 @Injectable({
   providedIn: 'root',
@@ -44,6 +46,13 @@ export class StateService {
 
   private nameQueue$: BehaviorSubject<Array<NamesDbEntry>> = new BehaviorSubject([])
 
+  xboxVideosDbState: {
+    [twitchId: string]: BehaviorSubject<{
+      videos: XboxVideo[]
+      gamertag: string
+      updated: string
+    }>
+  } = {}
   twitchVideosDbState: {
     [twitchId: string]: BehaviorSubject<{
       videos: TwitchVideo[]
@@ -79,7 +88,7 @@ export class StateService {
   // bungieProfiles: {
   //   [key: string]: DestinyProfileResponse;
   // } = {};
-  instancesWithClips$: Observable<DestinyPostGameCarnageReportDataExtended[]>
+  instancesWithVideos$: Observable<DestinyPostGameCarnageReportDataExtended[]>
   clipCount$: Observable<number>
 
   // membershipNames: {
@@ -91,9 +100,10 @@ export class StateService {
     private bungieQueue: BungieQueueService,
     private twitchAuth: TwitchAuthService,
     private twitchQueue: TwitchQueueService,
+    private xboxQueue: XboxQueueService,
     private dbService: NgxIndexedDBService
   ) {
-    this.instancesWithClips$ = combineLatest([this.characterIds$, this.pgcrsDbState]).pipe(
+    this.instancesWithVideos$ = combineLatest([this.characterIds$, this.pgcrsDbState]).pipe(
       map(([characterIds, pgcrsDbState]) => {
         const pgcrs: DestinyPostGameCarnageReportData[] = []
         const pgcrKeys = Object.keys(pgcrsDbState)
@@ -102,7 +112,8 @@ export class StateService {
             const pgcr = JSON.parse(pgcrsDbState[key]?.response) as DestinyPostGameCarnageReportDataExtended
             if (pgcr && pgcr.entries.some((entry) => characterIds.includes(entry.characterId))) {
               if (pgcr?.entries?.length) {
-                const twitchClipsArray: Array<Observable<Array<TwitchVideo>>> = []
+                const twitchVideosArray: Array<Observable<Array<TwitchVideo>>> = []
+                const xboxVideosArray: Array<Observable<Array<XboxVideo>>> = []
                 for (const entry of pgcr?.entries) {
                   entry.namesDbEntry = this.namesDbState.pipe(
                     map((namesDbState) => namesDbState[entry.player.destinyUserInfo.membershipId])
@@ -129,7 +140,7 @@ export class StateService {
                       })
                     }
 
-                    const twitchClips = this.twitchAccountsDbState[entry?.player?.destinyUserInfo?.membershipId].pipe(
+                    const twitchVideos = this.twitchAccountsDbState[entry?.player?.destinyUserInfo?.membershipId].pipe(
                       switchMap((twitchAccountsDbEntry: { membershipId: string; accounts: TwitchAccount[] }) => {
                         const twitchVideosDbEntries = []
                         if (twitchAccountsDbEntry?.accounts?.length) {
@@ -233,20 +244,60 @@ export class StateService {
                         }
                       )
                     )
-                    twitchClipsArray.push(twitchClips)
-                    entry.twitchClips = twitchClips
+                    twitchVideosArray.push(twitchVideos)
+                    entry.twitchVideos = twitchVideos
+
+                    const xboxVideos = entry.namesDbEntry.pipe(
+                      switchMap((namesDbEntry) => {
+                        if (namesDbEntry?.nameObject?.xboxDisplayName) {
+                          return this.xboxVideosDbState[namesDbEntry.nameObject.xboxDisplayName] || of([])
+                        } else {
+                          return of([])
+                        }
+                      }),
+                      map((xboxVideosDbEntry: { videos: XboxVideo[]; gamertag: string; updated: string }) => {
+                        const videos: XboxVideo[] = []
+                        if (xboxVideosDbEntry?.videos) {
+                          for (const video of xboxVideosDbEntry?.videos) {
+                            const videoStop = new Date(video.dateRecorded)
+                            const videoStart = new Date(
+                              new Date(video.dateRecorded).setSeconds(new Date(video.dateRecorded).getSeconds() - video.durationInSeconds)
+                            )
+
+                            if (videoStart < entryStop && videoStop > entryStart) {
+                              videos.push(video)
+                            }
+                          }
+                        }
+                        return videos
+                      })
+                    )
+                    xboxVideosArray.push(xboxVideos)
+                    entry.xboxVideos = xboxVideos
                   }
                 }
-                pgcr.twitchClips = combineLatest(twitchClipsArray).pipe(
+                pgcr.twitchVideos = combineLatest(twitchVideosArray).pipe(
                   distinctUntilChanged(),
-                  map((twitchClips) => {
-                    const clips: TwitchVideo[] = []
-                    for (const c of twitchClips) {
+                  map((twitchVideos) => {
+                    const videos: TwitchVideo[] = []
+                    for (const c of twitchVideos) {
                       for (const twitchClip of c) {
-                        clips.push(twitchClip)
+                        videos.push(twitchClip)
                       }
                     }
-                    return clips
+                    return videos
+                  })
+                )
+                pgcr.xboxVideos = combineLatest(xboxVideosArray).pipe(
+                  distinctUntilChanged(),
+                  map((xboxVideos) => {
+                    const videos: XboxVideo[] = []
+                    for (const c of xboxVideos) {
+                      for (const xboxClip of c) {
+                        videos.push(xboxClip)
+                      }
+                    }
+                    return videos
                   })
                 )
               }
@@ -547,8 +598,69 @@ export class StateService {
                                           return of({ membershipId, nameArray: [], nameObject: {} })
                                         }
                                       }),
-                                      map((namesDbEntry) => {
+                                      map((namesDbEntry: NamesDbEntry) => {
                                         this.nameQueue$.pipe(take(1)).subscribe((queue) => this.nameQueue$.next([...queue, namesDbEntry]))
+
+                                        if (namesDbEntry.nameObject.xboxDisplayName) {
+                                          const gamertag = namesDbEntry.nameObject.xboxDisplayName
+                                          if (!this.xboxVideosDbState[gamertag]) {
+                                            this.xboxVideosDbState[gamertag] = new BehaviorSubject({
+                                              videos: [],
+                                              gamertag,
+                                              updated: undefined,
+                                            })
+                                          }
+                                          this.xboxVideosDbState[gamertag]
+                                            .pipe(
+                                              withLatestFrom(
+                                                this.lastEncounteredDbState.pipe(
+                                                  map((lastEncounteredDbState) => {
+                                                    if (lastEncounteredDbState && lastEncounteredDbState[membershipId]) {
+                                                      return lastEncounteredDbState[membershipId]
+                                                    }
+                                                    return undefined
+                                                  })
+                                                )
+                                              ),
+                                              map(([xboxVideosDbState, lastEncounteredDbEntry]) => {
+                                                const oneHourAgo = new Date(new Date().setHours(new Date().getHours() - 1))
+                                                const oneDayAgo = new Date(new Date().setHours(new Date().getHours() - 24))
+                                                const lastEncountered = new Date(lastEncounteredDbEntry?.period)
+                                                const lastUpdated = new Date(xboxVideosDbState?.updated)
+                                                if (
+                                                  !xboxVideosDbState ||
+                                                  !xboxVideosDbState.updated ||
+                                                  !lastEncounteredDbEntry ||
+                                                  !lastEncounteredDbEntry.period ||
+                                                  lastEncountered > lastUpdated ||
+                                                  (lastUpdated < oneHourAgo &&
+                                                    lastEncountered.getFullYear() === lastUpdated.getFullYear() &&
+                                                    lastEncountered.getMonth() === lastUpdated.getMonth() &&
+                                                    lastEncountered.getDate() === lastUpdated.getDate())
+                                                ) {
+                                                  const action = 'getVideos'
+                                                  const behaviorSubject = new BehaviorSubject(undefined)
+                                                  const payload = gamertag
+                                                  this.xboxQueue.addToQueue(action, behaviorSubject, payload)
+                                                  behaviorSubject.subscribe(
+                                                    (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
+                                                      if (res?.gameClips) {
+                                                        const updated = new Date().toISOString()
+                                                        const xboxVideosDbEntry = {
+                                                          videos: res.gameClips,
+                                                          gamertag,
+                                                          updated,
+                                                        }
+                                                        this.xboxVideosDbState[gamertag].next(xboxVideosDbEntry)
+                                                        this.dbService.update('xboxVideos', xboxVideosDbEntry)
+                                                      }
+                                                    }
+                                                  )
+                                                }
+                                              })
+                                            )
+                                            .subscribe()
+                                        }
                                       })
                                     )
                                     .subscribe()
@@ -679,11 +791,11 @@ export class StateService {
               const prefixes = ['twitchtv', 'twitch', 'ttv', 'tv']
               while (queue.length && payload.length < 101) {
                 const membership = queue.shift()
-                if (membership?.nameArray?.length) {
+                if (membership.nameObject.twitchDisplayName) {
                   let nameArray = []
                   for (const name of membership?.nameArray) {
                     if (name) {
-                      let currentName = name
+                      let currentName = membership.nameObject.twitchDisplayName
                         .replace(/[^A-Za-z0-9_]+/gi, '')
                         .replace(/^_+|_+$/gi, '')
                         .toLowerCase()
@@ -866,7 +978,29 @@ export class StateService {
         }
       )
     )
+    const xboxVideos = from(this.dbService.getAll('xboxVideos')).pipe(
+      map(
+        (
+          entries: {
+            videos: XboxVideo[]
+            gamertag: string
+            updated: string
+          }[]
+        ) => {
+          const xboxVideosDbState = {}
 
-    return forkJoin([lastEncountered, names, pgcrs, twitchAccounts, twitchVideos])
+          for (const entry of entries) {
+            if (!this.xboxVideosDbState[entry.gamertag]) {
+              this.xboxVideosDbState[entry.gamertag] = new BehaviorSubject(entry)
+            } else {
+              this.xboxVideosDbState[entry.gamertag].next(entry)
+            }
+          }
+          return xboxVideosDbState
+        }
+      )
+    )
+
+    return forkJoin([lastEncountered, names, pgcrs, twitchAccounts, twitchVideos, xboxVideos])
   }
 }

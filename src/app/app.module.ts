@@ -32,7 +32,7 @@ import { BadgePipe } from './pipes/badge.pipe'
     FlexLayoutModule,
     NgxIndexedDBModule.forRoot({
       name: 'GtDb',
-      version: 1,
+      version: 2,
       objectStoresMeta: [
         {
           store: 'pgcrs',
@@ -150,6 +150,36 @@ import { BadgePipe } from './pipes/badge.pipe'
             {
               name: 'twitchId',
               keypath: 'twitchId',
+              options: {
+                unique: true,
+              },
+            },
+            {
+              name: 'lastUpdated',
+              keypath: 'lastUpdated',
+              options: {
+                unique: false,
+              },
+            },
+            {
+              name: 'videos',
+              keypath: 'videos',
+              options: {
+                unique: false,
+              },
+            },
+          ],
+        },
+        {
+          store: 'xboxVideos',
+          storeConfig: {
+            keyPath: 'gamertag',
+            autoIncrement: false,
+          },
+          storeSchema: [
+            {
+              name: 'gamertag',
+              keypath: 'gamertag',
               options: {
                 unique: true,
               },

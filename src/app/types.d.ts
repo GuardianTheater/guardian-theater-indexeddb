@@ -42,6 +42,58 @@ export interface TwitchVideo {
   matchType?: Observable<NameMatchTypes>
 }
 
+export interface XboxVideo {
+  gameClipId: string
+  state: string
+  datePublished: string
+  dateRecorded: string
+  lastModified: string
+  userCaption: string
+  type: string
+  durationInSeconds: number
+  scid: string
+  titleId: number
+  rating: number
+  ratingCount: number
+  views: number
+  titleData: string
+  systemProperties: string
+  savedByUser: string
+  achievementId: string
+  greatestMomentId: string
+  thumbnails: [
+    {
+      uri: string
+      fileSize: number
+      thumbnailType: string
+    },
+    {
+      uri: string
+      fileSize: number
+      thumbnailType: string
+    }
+  ]
+  gameClipUris: [
+    {
+      uri: string
+      fileSize: number
+      uriType: string
+      expiration: string
+    }
+  ]
+  xuid: string
+  clipName: string
+  titleName: string
+  gameClipLocale: string
+  clipContentAttributes: string
+  deviceType: string
+  commentCount: number
+  likeCount: number
+  shareCount: number
+  partialViews: number
+  play?: boolean
+}
+
 export type NameMatchTypes =
   | 'displayName'
   | 'fbDisplayName'
@@ -53,12 +105,14 @@ export type NameMatchTypes =
   | 'twitchDisplayName'
 
 export interface DestinyPostGameCarnageReportDataExtended extends DestinyPostGameCarnageReportData {
-  twitchClips?: Observable<TwitchVideo[]>
+  twitchVideos?: Observable<TwitchVideo[]>
+  xboxVideos?: Observable<XboxVideo[]>
   entries: DestinyPostGameCarnageReportEntryExtended[]
   watching?: boolean
 }
 export interface DestinyPostGameCarnageReportEntryExtended extends DestinyPostGameCarnageReportEntry {
-  twitchClips?: Observable<TwitchVideo[]>
+  twitchVideos?: Observable<TwitchVideo[]>
+  xboxVideos?: Observable<XboxVideo[]>
   namesDbEntry?: Observable<NamesDbEntry>
 }
 

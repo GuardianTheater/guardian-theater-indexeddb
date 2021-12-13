@@ -3,8 +3,15 @@ import { BungieAuthService } from './auth/bungie-auth/bungie-auth.service'
 import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service'
 import { StateService } from './state/state.service'
 import { TwitchQueueService } from './queue/twitch-queue.service'
+import { XboxQueueService } from './queue/xbox-queue.service'
 import { BungieQueueService } from './queue/bungie-queue.service'
-import { QueueCount, DestinyPostGameCarnageReportDataExtended, TwitchVideo, DestinyPostGameCarnageReportEntryExtended } from './types'
+import {
+  QueueCount,
+  DestinyPostGameCarnageReportDataExtended,
+  TwitchVideo,
+  DestinyPostGameCarnageReportEntryExtended,
+  XboxVideo,
+} from './types'
 import { DestinyPlayer } from 'bungie-api-ts/destiny2'
 import { combineLatest } from 'rxjs'
 import { switchMap, map } from 'rxjs/operators'
@@ -38,6 +45,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     private authTwitch: TwitchAuthService,
     public state: StateService,
     private twitchQueue: TwitchQueueService,
+    private xboxQueue: XboxQueueService,
     private bungieQueue: BungieQueueService
   ) {}
 
@@ -45,10 +53,11 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.instanceIdSet = new Set()
     this.instances = []
     this.queueCount.twitch = this.twitchQueue.queueCount
+    this.queueCount.xbox = this.xboxQueue.queueCount
     this.queueCount.bungie = this.bungieQueue.queueCount
     this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res))
     this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res))
-    this.state.instancesWithClips$
+    this.state.instancesWithVideos$
       .pipe(
         switchMap((instances) => {
           for (const instance of instances) {
@@ -58,9 +67,9 @@ export class AppComponent implements OnInit, AfterViewInit {
               this.instances.sort((a, b) => parseInt(b.activityDetails.instanceId, 10) - parseInt(a.activityDetails.instanceId, 10))
             }
           }
-          return combineLatest(instances.map((i) => i.twitchClips))
+          return combineLatest([...instances.map((i) => i.twitchVideos), ...instances.map((i) => i.xboxVideos)])
         }),
-        map((clips) => (this.clipCount = clips.reduce((acc, cur) => acc + cur.length, 0)))
+        map((videos) => (this.clipCount = videos.reduce((acc, cur) => acc + cur.length, 0)))
       )
       .subscribe()
   }
@@ -87,7 +96,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.authState.twitch = false
   }
 
-  loadVideo(video: TwitchVideo, instance: DestinyPostGameCarnageReportDataExtended) {
+  loadVideo(video: TwitchVideo | XboxVideo, instance: DestinyPostGameCarnageReportDataExtended) {
     this.instances.forEach((inst) => (inst.watching = false))
     instance.watching = true
     video.play = true
@@ -124,9 +133,15 @@ export class AppComponent implements OnInit, AfterViewInit {
     window.open(`${video.url}?t=${video.offset}`, '_blank')
   }
 
-  hideVideos(entry: DestinyPostGameCarnageReportEntryExtended, video: TwitchVideo) {
-    this.hiddenNames[entry.player.destinyUserInfo.membershipId + video.user_id] = video.user_name
-    this.hiddenVids.add(entry.player.destinyUserInfo.membershipId + video.user_id)
+  hideVideos(entry: DestinyPostGameCarnageReportEntryExtended, video: TwitchVideo | XboxVideo) {
+    if ((video as TwitchVideo).user_id) {
+      this.hiddenNames[entry.player.destinyUserInfo.membershipId + (video as TwitchVideo).user_id] = (video as TwitchVideo).user_name
+      this.hiddenVids.add(entry.player.destinyUserInfo.membershipId + (video as TwitchVideo).user_id)
+    }
+    if ((video as XboxVideo).xuid) {
+      this.hiddenNames[entry.player.destinyUserInfo.membershipId + (video as XboxVideo).xuid] = entry.player.destinyUserInfo.displayName
+      this.hiddenVids.add(entry.player.destinyUserInfo.membershipId + (video as XboxVideo).xuid)
+    }
   }
 
   showVideos(id: string) {
