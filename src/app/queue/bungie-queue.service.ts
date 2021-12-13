@@ -103,7 +103,11 @@ export class BungieQueueService {
             })
             .catch((e) => {
               nextAction.behaviorSubject.next(e)
-              this.queueCount[action].errors++
+              if (e.status === 500) {
+                this.queueCount[action].completed++
+              } else {
+                this.queueCount[action].errors++
+              }
               this.updateQueue(this.queueCount[action])
             })
           break

@@ -31,7 +31,9 @@
           Retrieving your Bungie profile -
           {{ queueCount.bungie.getMembershipDataForCurrentUser.completed +
           queueCount.bungie.getMembershipDataForCurrentUser.errors }} /
-          {{ queueCount.bungie.getMembershipDataForCurrentUser.queued }}
+          {{ queueCount.bungie.getMembershipDataForCurrentUser.queued }}<span
+            *ngIf="queueCount.bungie.getMembershipDataForCurrentUser.errors">
+            - {{queueCount.bungie.getMembershipDataForCurrentUser.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.bungie.getMembershipDataForCurrentUser.percentage"
             [color]="authState.bungie ? queueCount.bungie.getMembershipDataForCurrentUser.color : 'warn'">
           </mat-progress-bar>
@@ -39,14 +41,16 @@
         <div *ngIf="authState.bungie">
           Retrieving your Destiny profiles - {{ queueCount.bungie.getProfile.completed +
           queueCount.bungie.getProfile.errors }} /
-          {{ queueCount.bungie.getProfile.queued }}
+          {{ queueCount.bungie.getProfile.queued }}<span *ngIf="queueCount.bungie.getProfile.errors">
+            - {{queueCount.bungie.getProfile.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.bungie.getProfile.percentage"
             [color]="authState.bungie ? queueCount.bungie.getProfile.color : 'warn'"></mat-progress-bar>
         </div>
         <div *ngIf="authState.bungie">
           Retrieving 60 days of Activity History -
           {{ queueCount.bungie.getActivityHistory.completed + queueCount.bungie.getActivityHistory.errors }} /
-          {{ queueCount.bungie.getActivityHistory.queued }}
+          {{ queueCount.bungie.getActivityHistory.queued }}<span *ngIf="queueCount.bungie.getActivityHistory.errors">
+            - {{queueCount.bungie.getActivityHistory.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.bungie.getActivityHistory.percentage"
             [color]="authState.bungie ? queueCount.bungie.getActivityHistory.color : 'warn'"></mat-progress-bar>
         </div>
@@ -54,14 +58,18 @@
           Retrieving PGCRs -
           {{ queueCount.bungie.getPostGameCarnageReport.completed + queueCount.bungie.getPostGameCarnageReport.errors }}
           /
-          {{ queueCount.bungie.getPostGameCarnageReport.queued }}
+          {{ queueCount.bungie.getPostGameCarnageReport.queued }}<span
+            *ngIf="queueCount.bungie.getPostGameCarnageReport.errors">
+            - {{queueCount.bungie.getPostGameCarnageReport.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.bungie.getPostGameCarnageReport.percentage"
             [color]="authState.bungie ? queueCount.bungie.getPostGameCarnageReport.color : 'warn'"></mat-progress-bar>
         </div>
         <div *ngIf="authState.bungie">
           Retrieving linked Twitch IDs -
           {{ queueCount.bungie.getMembershipDataById.completed + queueCount.bungie.getMembershipDataById.errors }} /
-          {{ queueCount.bungie.getMembershipDataById.queued }}
+          {{ queueCount.bungie.getMembershipDataById.queued }}<span
+            *ngIf="queueCount.bungie.getMembershipDataById.errors">
+            - {{queueCount.bungie.getMembershipDataById.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.bungie.getMembershipDataById.percentage"
             [color]="authState.bungie ? queueCount.bungie.getMembershipDataById.color : 'warn'"></mat-progress-bar>
         </div>
@@ -71,7 +79,8 @@
         <h2>Xbox Queue</h2>
         <div>
           Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
-          {{ queueCount.xbox.getVideos.queued }}
+          {{ queueCount.xbox.getVideos.queued }}<span *ngIf="queueCount.xbox.getVideos.errors">
+            - {{queueCount.xbox.getVideos.errors}} errors</span>
           <mat-progress-bar mode="determinate" [value]="queueCount.xbox.getVideos.percentage"
             [color]="queueCount.xbox.getVideos.color"></mat-progress-bar>
         </div>

@@ -266,6 +266,27 @@ export class StateService {
 
                             if (videoStart < entryStop && videoStop > entryStart) {
                               videos.push(video)
+
+                              const oneHourAgo = new Date(new Date().setHours(new Date().getHours() - 1))
+                              const lastUpdated = new Date(xboxVideosDbEntry.updated)
+                              if (lastUpdated < oneHourAgo) {
+                                const action = 'getVideos'
+                                const behaviorSubject = new BehaviorSubject(undefined)
+                                const payload = xboxVideosDbEntry.gamertag
+                                this.xboxQueue.addToQueue(action, behaviorSubject, payload)
+                                behaviorSubject.subscribe((res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
+                                  if (res?.gameClips) {
+                                    const updated = new Date().toISOString()
+                                    const updatedXboxVideosDbEntry = {
+                                      videos: res.gameClips,
+                                      gamertag: xboxVideosDbEntry.gamertag,
+                                      updated,
+                                    }
+                                    this.xboxVideosDbState[xboxVideosDbEntry.gamertag].next(updatedXboxVideosDbEntry)
+                                    this.dbService.update('xboxVideos', updatedXboxVideosDbEntry)
+                                  }
+                                })
+                              }
                             }
                           }
                         }

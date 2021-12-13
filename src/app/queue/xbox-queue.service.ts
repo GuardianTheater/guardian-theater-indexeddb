@@ -72,13 +72,18 @@ export class XboxQueueService {
   }
 
   processGetVideos(behaviorSubject: BehaviorSubject<any>, gamertag: string) {
-    this.http
-      .get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`)
-      .subscribe((res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
+    this.http.get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`).subscribe(
+      (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
         behaviorSubject.next(res)
         this.queueCount.getVideos.completed++
         this.updateQueue(this.queueCount.getVideos)
-      })
+      },
+      (err) => {
+        behaviorSubject.next(err)
+        this.queueCount.getVideos.errors++
+        this.updateQueue(this.queueCount.getVideos)
+      }
+    )
   }
 
   updateQueue(queueCount: QueueCount) {
