@@ -36,7 +36,7 @@ export class XboxQueueService {
       for (const action of this.actionPriority) {
         const queue = queueDict[action]
         if (queue.length) {
-          const nextAction = queue.shift()
+          const nextAction = queue.splice(Math.floor(Math.random() * queue.length), 1)[0]
           switch (action) {
             case 'getVideos':
               this.processGetVideos(nextAction.behaviorSubject, nextAction.payload)
