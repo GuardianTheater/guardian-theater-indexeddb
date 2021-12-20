@@ -76,6 +76,9 @@ export class XboxQueueService {
       this.queueCount.getVideos.errors++
       this.updateQueue(this.queueCount.getVideos)
     } else {
+      this.http
+        .get(`https://profile.xboxlive.com/users/gt(${encodeURIComponent(gamertag)})/profile/settings`)
+        .subscribe((res) => console.log(res))
       this.http.get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`).subscribe(
         (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
           behaviorSubject.next(res)

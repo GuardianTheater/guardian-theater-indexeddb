@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, OnInit } from '@angular/core'
 import { BungieAuthService } from './auth/bungie-auth/bungie-auth.service'
 import { TwitchAuthService } from './auth/twitch-auth/twitch-auth.service'
+import { XboxAuthService } from './auth/xbox-auth/xbox-auth.service'
 import { StateService } from './state/state.service'
 import { TwitchQueueService } from './queue/twitch-queue.service'
 import { XboxQueueService } from './queue/xbox-queue.service'
@@ -38,11 +39,13 @@ export class AppComponent implements OnInit, AfterViewInit {
   authState = {
     bungie: false,
     twitch: false,
+    xbox: false,
   }
 
   constructor(
     private authBungie: BungieAuthService,
     private authTwitch: TwitchAuthService,
+    private authXbox: XboxAuthService,
     public state: StateService,
     private twitchQueue: TwitchQueueService,
     private xboxQueue: XboxQueueService,
@@ -57,6 +60,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.queueCount.bungie = this.bungieQueue.queueCount
     this.authBungie.hasValidAccessToken$.subscribe((res) => (this.authState.bungie = res))
     this.authTwitch.hasValidIdToken$.subscribe((res) => (this.authState.twitch = res))
+    this.authXbox.hasValidIdToken$.subscribe((res) => (this.authState.xbox = res))
     this.state.instancesWithVideos$
       .pipe(
         switchMap((instances) => {
@@ -86,6 +90,10 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.authTwitch.login()
   }
 
+  loginXbox() {
+    this.authXbox.login()
+  }
+
   logoutBungie() {
     this.authBungie.logout()
     this.authState.bungie = false
@@ -94,6 +102,11 @@ export class AppComponent implements OnInit, AfterViewInit {
   logoutTwitch() {
     this.authTwitch.logout()
     this.authState.twitch = false
+  }
+
+  logoutXbox() {
+    this.authXbox.logout()
+    this.authState.xbox = false
   }
 
   loadVideo(video: TwitchVideo | XboxVideo, instance: DestinyPostGameCarnageReportDataExtended) {

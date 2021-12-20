@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core'
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http'
-import { TwitchOAuthStorage } from './twitch-auth.storage'
+import { XboxOAuthStorage } from './xbox-auth.storage'
 import { Observable } from 'rxjs'
 import { environment } from 'src/environments/environment'
 
 @Injectable({
   providedIn: 'root',
 })
-export class TwitchAuthInterceptor implements HttpInterceptor {
-  constructor(private authStorage: TwitchOAuthStorage) {}
+export class XboxAuthInterceptor implements HttpInterceptor {
+  constructor(private authStorage: XboxOAuthStorage) {}
 
   private checkUrl(url: string): boolean {
-    const allowedUrls = ['https://www.twitch.tv', 'https://api.twitch.tv']
+    const allowedUrls = ['https://gameclipsmetadata.xboxlive.com', 'https://profile.xboxlive.com']
     const found = allowedUrls.find((u) => url.startsWith(u))
     return !!found
   }
@@ -23,7 +23,7 @@ export class TwitchAuthInterceptor implements HttpInterceptor {
       return next.handle(req)
     }
 
-    let headers = req.headers.set('Client-ID', environment.twitch.clientId)
+    let headers = req.headers.set('Client-ID', environment.xbox.clientId)
 
     if (this.authStorage.getItem('access_token')) {
       headers = headers.set('Authorization', `Bearer ${this.authStorage.getItem('access_token')}`)

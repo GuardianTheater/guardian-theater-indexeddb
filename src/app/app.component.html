@@ -12,6 +12,8 @@
       <button mat-raised-button color="accent" (click)="logoutBungie()" *ngIf="authState.bungie">Bungie Logout</button>
       <button mat-raised-button color="primary" (click)="loginTwitch()" *ngIf="!authState.twitch">Twitch Login</button>
       <button mat-raised-button color="accent" (click)="logoutTwitch()" *ngIf="authState.twitch">Twitch Logout</button>
+      <button mat-raised-button color="primary" (click)="loginXbox()" *ngIf="!authState.xbox">Xbox Login</button>
+      <button mat-raised-button color="accent" (click)="logoutXbox()" *ngIf="authState.xbox">Xbox Logout</button>
       <a mat-raised-button color="accent" href="https://www.bungie.net/LinkTwitch" target="_blank">Link Accounts</a>
       <a (click)="refresh()" mat-raised-button color="accent">Soft Refresh</a>
       <a (click)="reset()" mat-raised-button color="warn">Hard Reset</a>

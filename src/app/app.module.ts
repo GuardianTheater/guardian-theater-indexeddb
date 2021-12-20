@@ -9,6 +9,7 @@ import { HttpClientModule } from '@angular/common/http'
 
 import { BungieAuthModule } from './auth/bungie-auth/bungie-auth.module'
 import { TwitchAuthModule } from './auth/twitch-auth/twitch-auth.module'
+import { XboxAuthModule } from './auth/xbox-auth/xbox-auth.module'
 
 import { NgxIndexedDBModule } from 'ngx-indexed-db'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
@@ -29,6 +30,7 @@ import { BadgePipe } from './pipes/badge.pipe'
     AppRoutingModule,
     BungieAuthModule,
     TwitchAuthModule,
+    XboxAuthModule,
     FlexLayoutModule,
     NgxIndexedDBModule.forRoot({
       name: 'GtDb',
