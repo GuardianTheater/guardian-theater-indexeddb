@@ -80,7 +80,7 @@
       <div>
         <h2>{{ authState.twitch ? 'Twitch Queues' : 'Twitch Login Required'}}</h2>
         <div *ngIf="!authState.twitch">
-          Please login with your Twitch account to begin searching for Twitch VODs.
+          Please login with any Twitch account to begin searching for Twitch VODs.
         </div>
         <div *ngIf="authState.twitch">
           Retrieving Twitch accounts - {{ queueCount.twitch.getUsers.completed + queueCount.twitch.getUsers.errors
@@ -100,7 +100,8 @@
       <div>
         <h2>{{ authState.xbox ? 'Xbox Queue' : 'Xbox Login Required'}}</h2>
         <div *ngIf="!authState.xbox">
-          Please login with your Xbox account to begin searching for Xbox clips.
+          Please login with any Microsoft account to begin searching for Xbox clips. You do NOT need to play on Xbox to
+          find Xbox clips.
         </div>
         <div *ngIf="authState.xbox && !queueCount.xbox.getVideos.rateLimited">
           Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
