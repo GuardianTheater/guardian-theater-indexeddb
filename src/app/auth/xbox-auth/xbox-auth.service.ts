@@ -1,8 +1,6 @@
-import { Injectable, Inject } from '@angular/core'
-import { OAuthService } from 'angular-oauth2-oidc'
-import { OAuthXboxService } from './xbox-auth.module'
+import { Injectable } from '@angular/core'
 import { XboxOAuthStorage } from './xbox-auth.storage'
-import { ActivatedRoute } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { distinctUntilChanged } from 'rxjs/operators'
 
@@ -12,11 +10,7 @@ import { distinctUntilChanged } from 'rxjs/operators'
 export class XboxAuthService {
   hasValidIdToken$: BehaviorSubject<boolean> = new BehaviorSubject(false)
 
-  constructor(
-    @Inject(OAuthXboxService) private oAuthService: OAuthService,
-    private route: ActivatedRoute,
-    private authStorage: XboxOAuthStorage
-  ) {
+  constructor(private route: ActivatedRoute, private authStorage: XboxOAuthStorage, private router: Router) {
     this.tryLogin()
   }
 
@@ -25,6 +19,7 @@ export class XboxAuthService {
       if (url.xbl3Token && url.notAfter) {
         this.authStorage.setItem('xbl3Token', url.xbl3Token)
         this.authStorage.setItem('notAfter', url.notAfter)
+        this.router.navigate([])
       }
       const xbl3Token = this.authStorage.getItem('xbl3Token')
       const notAfter = this.authStorage.getItem('notAfter')

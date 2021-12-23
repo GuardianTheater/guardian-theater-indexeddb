@@ -93,20 +93,26 @@ export class XboxQueueService {
           this.updateQueue(this.queueCount.getVideos)
         },
         (err) => {
-          if (err.status === 429) {
-            try {
-              console.log((err.error.periodInSeconds / err.error.maxRequests) * 1000)
-              this.debounce.next((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100)
-              if ((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100 > 10000) {
+          if (err.status === 500) {
+            behaviorSubject.next(err)
+            this.queueCount.getVideos.completed++
+            this.updateQueue(this.queueCount.getVideos)
+          } else {
+            if (err.status === 429) {
+              try {
+                console.log((err.error.periodInSeconds / err.error.maxRequests) * 1000)
+                this.debounce.next((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100)
+                if ((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100 > 10000) {
+                  this.queueCount.getVideos.rateLimited = true
+                }
+              } catch {
                 this.queueCount.getVideos.rateLimited = true
               }
-            } catch {
-              this.queueCount.getVideos.rateLimited = true
             }
+            behaviorSubject.next(err)
+            this.queueCount.getVideos.errors++
+            this.updateQueue(this.queueCount.getVideos)
           }
-          behaviorSubject.next(err)
-          this.queueCount.getVideos.errors++
-          this.updateQueue(this.queueCount.getVideos)
         }
       )
     }
