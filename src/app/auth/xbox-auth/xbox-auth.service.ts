@@ -6,6 +6,7 @@ import { XboxOAuthStorage } from './xbox-auth.storage'
 import { ActivatedRoute } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { environment } from 'src/environments/environment'
+import { distinctUntilChanged } from 'rxjs/operators'
 
 @Injectable({
   providedIn: 'root',
@@ -24,7 +25,7 @@ export class XboxAuthService {
       redirectUri: environment.xbox.redirect,
       skipIssuerCheck: true,
       responseType: 'code',
-      scope: 'api://78e4213c-6032-459b-ace6-1f1d55c8b27c/access_as_user',
+      scope: 'api://78e4213c-6032-459b-ace6-1f1d55c8b27c/access_as_user XboxLive.signin XboxLive.offline_access',
       strictDiscoveryDocumentValidation: false,
     })
     this.oAuthService.tokenValidationHandler = new JwksValidationHandler()
@@ -32,7 +33,7 @@ export class XboxAuthService {
   }
 
   async tryLogin() {
-    this.route.queryParams.subscribe(async (url) => {
+    this.route.queryParams.pipe(distinctUntilChanged()).subscribe(async (url) => {
       if (url.code && url.state) {
         await this.oAuthService.loadDiscoveryDocumentAndTryLogin()
       }

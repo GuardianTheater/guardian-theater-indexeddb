@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, combineLatest } from 'rxjs'
 import { HttpClient } from '@angular/common/http'
 import { debounceTime, take } from 'rxjs/operators'
 import { TwitchVideo, QueueCount, TwitchAccount } from '../types'
+import { TwitchAuthService } from '../auth/twitch-auth/twitch-auth.service'
 
 @Injectable({
   providedIn: 'root',
@@ -38,36 +39,40 @@ export class TwitchQueueService {
     },
   }
 
-  constructor(private http: HttpClient) {
-    this.queue$.pipe(debounceTime(75)).subscribe((queueDict) => {
-      for (const action of this.actionPriority) {
-        const queue = queueDict[action]
-        if (queue.length) {
-          const nextAction = queue.shift()
-          switch (action) {
-            case 'getUsers':
-              this.processGetUsers(nextAction.behaviorSubject, nextAction.payload)
-              while (queue.length > 0 && nextAction.payload.length + queue[0].payload.length <= 100) {
-                const next = queue.shift()
-                this.queueCount.getUsers.queued--
-                this.updateQueue(this.queueCount.getUsers)
-                nextAction.payload = [...nextAction.payload, next.payload]
+  constructor(private http: HttpClient, private twitchAuth: TwitchAuthService) {
+    combineLatest([this.queue$, this.twitchAuth.hasValidIdToken$])
+      .pipe(debounceTime(75))
+      .subscribe(([queueDict, hasValidIdToken]) => {
+        if (hasValidIdToken) {
+          for (const action of this.actionPriority) {
+            const queue = queueDict[action]
+            if (queue.length) {
+              const nextAction = queue.shift()
+              switch (action) {
+                case 'getUsers':
+                  this.processGetUsers(nextAction.behaviorSubject, nextAction.payload)
+                  while (queue.length > 0 && nextAction.payload.length + queue[0].payload.length <= 100) {
+                    const next = queue.shift()
+                    this.queueCount.getUsers.queued--
+                    this.updateQueue(this.queueCount.getUsers)
+                    nextAction.payload = [...nextAction.payload, next.payload]
+                  }
+                  this.queue$.next(queueDict)
+                  break
+                case 'getVideos':
+                  this.processGetVideos(nextAction.behaviorSubject, nextAction.payload)
+                  this.queue$.next(queueDict)
+                  break
+                default:
+                  console.error('invalid action')
+                  this.queue$.next(queueDict)
+                  break
               }
-              this.queue$.next(queueDict)
               break
-            case 'getVideos':
-              this.processGetVideos(nextAction.behaviorSubject, nextAction.payload)
-              this.queue$.next(queueDict)
-              break
-            default:
-              console.error('invalid action')
-              this.queue$.next(queueDict)
-              break
+            }
           }
-          break
         }
-      }
-    })
+      })
   }
 
   addToQueue(action: 'getUsers' | 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: any) {

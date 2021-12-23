@@ -3,6 +3,7 @@ import { BehaviorSubject, combineLatest, interval } from 'rxjs'
 import { HttpClient } from '@angular/common/http'
 import { switchMap, take, debounce, distinctUntilChanged } from 'rxjs/operators'
 import { XboxVideo, QueueCount } from '../types'
+import { XboxAuthService } from '../auth/xbox-auth/xbox-auth.service'
 
 @Injectable({
   providedIn: 'root',
@@ -36,26 +37,30 @@ export class XboxQueueService {
     switchMap((i) => interval(i))
   )
 
-  constructor(private http: HttpClient) {
-    this.queue$.pipe(debounce((queueDict) => this.interval)).subscribe((queueDict) => {
-      for (const action of this.actionPriority) {
-        const queue = queueDict[action]
-        if (queue.length) {
-          const nextAction = queue.splice(Math.floor(Math.random() * queue.length), 1)[0]
-          switch (action) {
-            case 'getVideos':
-              this.processGetVideos(nextAction.behaviorSubject, nextAction.payload)
-              this.queue$.next(queueDict)
+  constructor(private http: HttpClient, private xboxAuth: XboxAuthService) {
+    combineLatest([this.queue$, this.xboxAuth.hasValidIdToken$])
+      .pipe(debounce(([queueDict, hasValidIdToken]) => this.interval))
+      .subscribe(([queueDict, hasValidIdToken]) => {
+        if (hasValidIdToken) {
+          for (const action of this.actionPriority) {
+            const queue = queueDict[action]
+            if (queue.length) {
+              const nextAction = queue.splice(Math.floor(Math.random() * queue.length), 1)[0]
+              switch (action) {
+                case 'getVideos':
+                  this.processGetVideos(nextAction.behaviorSubject, nextAction.payload)
+                  this.queue$.next(queueDict)
+                  break
+                default:
+                  console.error('invalid action')
+                  this.queue$.next(queueDict)
+                  break
+              }
               break
-            default:
-              console.error('invalid action')
-              this.queue$.next(queueDict)
-              break
+            }
           }
-          break
         }
-      }
-    })
+      })
   }
 
   addToQueue(action: 'getVideos', behaviorSubject: BehaviorSubject<any>, payload?: any) {
@@ -81,7 +86,7 @@ export class XboxQueueService {
       this.queueCount.getVideos.errors++
       this.updateQueue(this.queueCount.getVideos)
     } else {
-      this.http.get(`https://xapi.dustinrue.com/destiny2/${gamertag}`).subscribe(
+      this.http.get(`http://localhost:3000/destiny2/${gamertag}`).subscribe(
         (res: { clips: { gameClips: XboxVideo[]; status: string; numResults: number } }) => {
           behaviorSubject.next(res)
           this.queueCount.getVideos.completed++
