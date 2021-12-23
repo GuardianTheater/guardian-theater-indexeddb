@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core'
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http'
 import { XboxOAuthStorage } from './xbox-auth.storage'
 import { Observable } from 'rxjs'
-import { environment } from 'src/environments/environment'
 
 @Injectable({
   providedIn: 'root',
@@ -28,10 +27,10 @@ export class XboxAuthInterceptor implements HttpInterceptor {
       return next.handle(req)
     }
 
-    let headers = req.headers.set('Client-ID', environment.xbox.clientId)
+    let headers = req.headers
 
-    if (this.authStorage.getItem('access_token')) {
-      headers = headers.set('Authorization', `${this.authStorage.getItem('access_token')}`)
+    if (this.authStorage.getItem('xbl3Token')) {
+      headers = headers.set('Authorization', `${this.authStorage.getItem('xbl3Token')}`)
     }
 
     req = req.clone({ headers })

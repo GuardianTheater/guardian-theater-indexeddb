@@ -8,9 +8,8 @@ import {
   ServerResponse,
   getMembershipDataById,
   GetMembershipDataByIdParams,
-  BungieMembershipType,
 } from 'bungie-api-ts/user'
-import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom, tap } from 'rxjs/operators'
+import { switchMap, map, take, debounceTime, distinctUntilChanged, filter, withLatestFrom } from 'rxjs/operators'
 import { BungieQueueService } from '../queue/bungie-queue.service'
 import {
   DestinyProfileResponse,
@@ -84,16 +83,8 @@ export class StateService {
     }
   }> = new BehaviorSubject({})
 
-  // bungieCurrentUser: UserMembershipData;
-  // bungieProfiles: {
-  //   [key: string]: DestinyProfileResponse;
-  // } = {};
   instancesWithVideos$: Observable<DestinyPostGameCarnageReportDataExtended[]>
   clipCount$: Observable<number>
-
-  // membershipNames: {
-  //   [key: string]: BehaviorSubject<string[]>;
-  // } = {};
 
   constructor(
     private bungieAuth: BungieAuthService,
@@ -368,15 +359,6 @@ export class StateService {
                 }
                 this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params)
               }
-              // const action = getProfile
-              // const behaviorSubject: BehaviorSubject<ServerResponse<DestinyProfileResponse>> = new BehaviorSubject(undefined)
-              // destinyProfileResponses.push(behaviorSubject)
-              // const params: GetProfileParams = {
-              //   destinyMembershipId: '',
-              //   membershipType: 1,
-              //   components: [DestinyComponentType.Profiles, DestinyComponentType.Characters],
-              // }
-              // this.bungieQueue.addToQueue('getProfile', action, behaviorSubject, params)
               return of(destinyProfileResponses)
             } else {
               return EMPTY

@@ -39,7 +39,7 @@ export class XboxQueueService {
 
   constructor(private http: HttpClient, private xboxAuth: XboxAuthService) {
     combineLatest([this.queue$, this.xboxAuth.hasValidIdToken$])
-      .pipe(debounce(([queueDict, hasValidIdToken]) => this.interval))
+      .pipe(debounce(() => this.interval))
       .subscribe(([queueDict, hasValidIdToken]) => {
         if (hasValidIdToken) {
           for (const action of this.actionPriority) {
@@ -86,7 +86,7 @@ export class XboxQueueService {
       this.queueCount.getVideos.errors++
       this.updateQueue(this.queueCount.getVideos)
     } else {
-      this.http.get(`http://localhost:3000/destiny2/${gamertag}`).subscribe(
+      this.http.get(`https://xapi.dustinrue.com/destiny2/${gamertag}`).subscribe(
         (res: { clips: { gameClips: XboxVideo[]; status: string; numResults: number } }) => {
           behaviorSubject.next(res)
           this.queueCount.getVideos.completed++

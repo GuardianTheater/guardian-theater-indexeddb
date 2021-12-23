@@ -1,11 +1,9 @@
 import { Injectable, Inject } from '@angular/core'
 import { OAuthService } from 'angular-oauth2-oidc'
-import { JwksValidationHandler } from 'angular-oauth2-oidc-jwks'
 import { OAuthXboxService } from './xbox-auth.module'
 import { XboxOAuthStorage } from './xbox-auth.storage'
 import { ActivatedRoute } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
-import { environment } from 'src/environments/environment'
 import { distinctUntilChanged } from 'rxjs/operators'
 
 @Injectable({
@@ -14,42 +12,40 @@ import { distinctUntilChanged } from 'rxjs/operators'
 export class XboxAuthService {
   hasValidIdToken$: BehaviorSubject<boolean> = new BehaviorSubject(false)
 
-  constructor(@Inject(OAuthXboxService) private oAuthService: OAuthService, private route: ActivatedRoute) {
-    this.oAuthService.setStorage(new XboxOAuthStorage())
-    this.oAuthService.configure({
-      issuer: 'https://login.microsoftonline.com/consumers/v2.0',
-      loginUrl: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
-      tokenEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
-      userinfoEndpoint: 'https://graph.microsoft.com/oidc/userinfo',
-      clientId: environment.xbox.clientId,
-      redirectUri: environment.xbox.redirect,
-      skipIssuerCheck: true,
-      responseType: 'code',
-      scope: 'api://78e4213c-6032-459b-ace6-1f1d55c8b27c/access_as_user XboxLive.signin XboxLive.offline_access',
-      strictDiscoveryDocumentValidation: false,
-    })
-    this.oAuthService.tokenValidationHandler = new JwksValidationHandler()
+  constructor(
+    @Inject(OAuthXboxService) private oAuthService: OAuthService,
+    private route: ActivatedRoute,
+    private authStorage: XboxOAuthStorage
+  ) {
     this.tryLogin()
   }
 
   async tryLogin() {
     this.route.queryParams.pipe(distinctUntilChanged()).subscribe(async (url) => {
-      if (url.code && url.state) {
-        await this.oAuthService.loadDiscoveryDocumentAndTryLogin()
+      if (url.xbl3Token && url.notAfter) {
+        this.authStorage.setItem('xbl3Token', url.xbl3Token)
+        this.authStorage.setItem('notAfter', url.notAfter)
       }
-      if (this.oAuthService.hasValidIdToken()) {
-        this.oAuthService.setupAutomaticSilentRefresh()
-        this.hasValidIdToken$.next(true)
+      const xbl3Token = this.authStorage.getItem('xbl3Token')
+      const notAfter = this.authStorage.getItem('notAfter')
+      if (xbl3Token && notAfter) {
+        const now = new Date()
+        const notAfterDate = new Date(notAfter)
+        if (now < notAfterDate) {
+          this.hasValidIdToken$.next(true)
+        } else {
+          this.logout()
+        }
       }
     })
   }
 
   async login() {
-    await this.oAuthService.createAndSaveNonce()
-    this.oAuthService.initLoginFlow()
+    window.location.href = 'https://xapi.dustinrue.com/login'
   }
 
   logout() {
-    this.oAuthService.logOut()
+    this.authStorage.removeItem('xbl3Token')
+    this.authStorage.removeItem('notAfter')
   }
 }
