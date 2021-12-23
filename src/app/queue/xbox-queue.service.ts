@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, combineLatest, interval } from 'rxjs'
 import { HttpClient } from '@angular/common/http'
-import { debounceTime, take } from 'rxjs/operators'
+import { switchMap, take, debounce, distinctUntilChanged } from 'rxjs/operators'
 import { XboxVideo, QueueCount } from '../types'
 
 @Injectable({
@@ -30,9 +30,14 @@ export class XboxQueueService {
       rateLimited: false,
     },
   }
+  debounce = new BehaviorSubject(500)
+  interval = this.debounce.pipe(
+    distinctUntilChanged(),
+    switchMap((i) => interval(i))
+  )
 
   constructor(private http: HttpClient) {
-    this.queue$.pipe(debounceTime(1000)).subscribe((queueDict) => {
+    this.queue$.pipe(debounce((queueDict) => this.interval)).subscribe((queueDict) => {
       for (const action of this.actionPriority) {
         const queue = queueDict[action]
         if (queue.length) {
@@ -76,18 +81,23 @@ export class XboxQueueService {
       this.queueCount.getVideos.errors++
       this.updateQueue(this.queueCount.getVideos)
     } else {
-      this.http
-        .get(`https://profile.xboxlive.com/users/gt(${encodeURIComponent(gamertag)})/profile/settings`)
-        .subscribe((res) => console.log(res))
-      this.http.get(`https://xapi.dustinrue.com/gameclips/gamertag/${gamertag}/titleid/144389848`).subscribe(
-        (res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
+      this.http.get(`https://xapi.dustinrue.com/destiny2/${gamertag}`).subscribe(
+        (res: { clips: { gameClips: XboxVideo[]; status: string; numResults: number } }) => {
           behaviorSubject.next(res)
           this.queueCount.getVideos.completed++
           this.updateQueue(this.queueCount.getVideos)
         },
         (err) => {
           if (err.status === 429) {
-            this.queueCount.getVideos.rateLimited = true
+            try {
+              console.log((err.error.periodInSeconds / err.error.maxRequests) * 1000)
+              this.debounce.next((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100)
+              if ((err.error.periodInSeconds / err.error.maxRequests) * 1000 + 100 > 10000) {
+                this.queueCount.getVideos.rateLimited = true
+              }
+            } catch {
+              this.queueCount.getVideos.rateLimited = true
+            }
           }
           behaviorSubject.next(err)
           this.queueCount.getVideos.errors++

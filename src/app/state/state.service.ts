@@ -274,18 +274,20 @@ export class StateService {
                                 const behaviorSubject = new BehaviorSubject(undefined)
                                 const payload = xboxVideosDbEntry.gamertag
                                 this.xboxQueue.addToQueue(action, behaviorSubject, payload)
-                                behaviorSubject.subscribe((res: { gameClips: XboxVideo[]; status: string; numResults: number }) => {
-                                  if (res?.gameClips) {
-                                    const updated = new Date().toISOString()
-                                    const updatedXboxVideosDbEntry = {
-                                      videos: res.gameClips,
-                                      gamertag: xboxVideosDbEntry.gamertag,
-                                      updated,
+                                behaviorSubject.subscribe(
+                                  (res: { clips: { gameClips: XboxVideo[]; status: string; numResults: number } }) => {
+                                    if (res?.clips?.gameClips) {
+                                      const updated = new Date().toISOString()
+                                      const updatedXboxVideosDbEntry = {
+                                        videos: res.clips.gameClips,
+                                        gamertag: xboxVideosDbEntry.gamertag,
+                                        updated,
+                                      }
+                                      this.xboxVideosDbState[xboxVideosDbEntry.gamertag].next(updatedXboxVideosDbEntry)
+                                      this.dbService.update('xboxVideos', updatedXboxVideosDbEntry)
                                     }
-                                    this.xboxVideosDbState[xboxVideosDbEntry.gamertag].next(updatedXboxVideosDbEntry)
-                                    this.dbService.update('xboxVideos', updatedXboxVideosDbEntry)
                                   }
-                                })
+                                )
                               }
                             }
                           }
@@ -662,15 +664,17 @@ export class StateService {
                                                   this.xboxQueue.addToQueue(action, behaviorSubject, payload)
                                                   behaviorSubject.subscribe(
                                                     (res: {
-                                                      gameClips: XboxVideo[]
-                                                      status: string
-                                                      numResults: number
-                                                      description: string
+                                                      clips: {
+                                                        gameClips: XboxVideo[]
+                                                        status: string
+                                                        numResults: number
+                                                        description: string
+                                                      }
                                                     }) => {
-                                                      if (res?.gameClips || res?.description === 'no clips returned') {
+                                                      if (res?.clips?.gameClips || res?.clips?.description === 'no clips returned') {
                                                         const updated = new Date().toISOString()
                                                         const xboxVideosDbEntry = {
-                                                          videos: res.gameClips || [],
+                                                          videos: res.clips.gameClips || [],
                                                           gamertag,
                                                           updated,
                                                         }
@@ -759,20 +763,6 @@ export class StateService {
                                                         }
                                                       )
                                                     }
-                                                    // if (!twitchVideosDbEntry) {
-                                                    //   const updated = new Date().toISOString();
-                                                    //   twitchVideosDbEntry = {
-                                                    //     videos: [],
-                                                    //     twitchId: account.id,
-                                                    //     updated,
-                                                    //   };
-                                                    //   this.twitchVideosDbState[account.id]
-                                                    //     .pipe(take(1))
-                                                    //     .subscribe((twitchVideosDbState) => {
-                                                    //       twitchVideosDbState = twitchVideosDbEntry;
-                                                    //       this.twitchVideosDbState[account.id].next(twitchVideosDbState);
-                                                    //     });
-                                                    // }
                                                   })
                                                 )
                                                 .subscribe()

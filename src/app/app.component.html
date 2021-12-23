@@ -77,18 +77,6 @@
         </div>
       </div>
       <br />
-      <div *ngIf="authState.bungie">
-        <h2>Xbox Queue</h2>
-        <div *ngIf="!queueCount.xbox.getVideos.rateLimited; else elseBlock">
-          Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
-          {{ queueCount.xbox.getVideos.queued }}<span *ngIf="queueCount.xbox.getVideos.errors">
-            - {{queueCount.xbox.getVideos.errors}} errors</span>
-          <mat-progress-bar mode="determinate" [value]="queueCount.xbox.getVideos.percentage"
-            [color]="queueCount.xbox.getVideos.color"></mat-progress-bar>
-        </div>
-        <ng-template #elseBlock>Xbox Clip API overloaded, try again later</ng-template>
-      </div>
-      <br />
       <div>
         <h2>{{ authState.twitch ? 'Twitch Queues' : 'Twitch Login Required'}}</h2>
         <div *ngIf="!authState.twitch">
@@ -106,6 +94,22 @@
           {{ queueCount.twitch.getVideos.queued }}
           <mat-progress-bar mode="determinate" [value]="queueCount.twitch.getVideos.percentage"
             [color]="authState.twitch ? queueCount.twitch.getVideos.color : 'warn'"></mat-progress-bar>
+        </div>
+      </div>
+      <br />
+      <div>
+        <h2>{{ authState.xbox ? 'Xbox Queue' : 'Xbox Login Required'}}</h2>
+        <div *ngIf="!authState.xbox">
+          Please login with your Xbox account to begin searching for Xbox clips.
+        </div>
+        <div *ngIf="authState.xbox && !queueCount.xbox.getVideos.rateLimited">
+          Retrieving Xbox Clips - {{ queueCount.xbox.getVideos.completed + queueCount.xbox.getVideos.errors }} /
+          {{ queueCount.xbox.getVideos.queued }}<span *ngIf="queueCount.xbox.getVideos.errors">
+            - {{queueCount.xbox.getVideos.errors}} errors</span>
+          <mat-progress-bar mode="determinate" [value]="queueCount.xbox.getVideos.percentage"
+            [color]="queueCount.xbox.getVideos.color"></mat-progress-bar>
+        </div>
+        <div *ngIf="authState.xbox && queueCount.xbox.getVideos.rateLimited">Xbox Clip API overloaded, try again later
         </div>
       </div>
       <br />

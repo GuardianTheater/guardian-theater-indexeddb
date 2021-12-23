@@ -24,7 +24,7 @@ export class XboxAuthService {
       redirectUri: environment.xbox.redirect,
       skipIssuerCheck: true,
       responseType: 'code',
-      scope: 'openid profile email Xboxlive.signin Xboxlive.offline_access',
+      scope: 'api://78e4213c-6032-459b-ace6-1f1d55c8b27c/access_as_user',
       strictDiscoveryDocumentValidation: false,
     })
     this.oAuthService.tokenValidationHandler = new JwksValidationHandler()
@@ -32,11 +32,15 @@ export class XboxAuthService {
   }
 
   async tryLogin() {
-    await this.oAuthService.loadDiscoveryDocumentAndTryLogin()
-    if (this.oAuthService.hasValidIdToken()) {
-      this.oAuthService.setupAutomaticSilentRefresh()
-      this.hasValidIdToken$.next(true)
-    }
+    this.route.queryParams.subscribe(async (url) => {
+      if (url.code && url.state) {
+        await this.oAuthService.loadDiscoveryDocumentAndTryLogin()
+      }
+      if (this.oAuthService.hasValidIdToken()) {
+        this.oAuthService.setupAutomaticSilentRefresh()
+        this.hasValidIdToken$.next(true)
+      }
+    })
   }
 
   async login() {
