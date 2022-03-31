@@ -31,7 +31,7 @@ export class XboxQueueService {
       rateLimited: false,
     },
   }
-  debounce = new BehaviorSubject(550)
+  debounce = new BehaviorSubject(1000)
   interval = this.debounce.pipe(
     distinctUntilChanged(),
     switchMap((i) => interval(i))
