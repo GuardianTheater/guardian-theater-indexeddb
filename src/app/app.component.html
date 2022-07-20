@@ -149,7 +149,7 @@
               <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
                 entry.player.destinyUserInfo.bungieGlobalDisplayName || entry.player.destinyUserInfo.displayName
                 }}
-                <span *ngIf="entry.player | badge" class="badge">{{entry.player |
+                <span *ngIf="entry.player | badge" [class]="'badge ' + (entry.player | badge)">{{entry.player |
                   badge}}</span>
               </mat-card-title>
 
@@ -205,7 +205,7 @@
               <mat-card-title class="clickable" (click)="linkToBungieProfile(entry.player)">{{
                 entry.player.destinyUserInfo.bungieGlobalDisplayName || entry.player.destinyUserInfo.displayName
                 }}
-                <span *ngIf="entry.player | badge" class="badge">{{entry.player |
+                <span *ngIf="entry.player | badge" [class]="'badge ' + (entry.player | badge)">{{entry.player |
                   badge}}</span>
               </mat-card-title>
 

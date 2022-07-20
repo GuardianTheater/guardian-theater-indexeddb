@@ -45,6 +45,7 @@ export class BadgePipe implements PipeTransform {
     '4611686018470981976',
     '4611686018475208326',
   ])
+  bdgf = new Set(['4611686018432739251'])
 
   transform(player: DestinyPlayer): any {
     if (this.creator.has(player.destinyUserInfo.membershipId)) {
@@ -53,6 +54,9 @@ export class BadgePipe implements PipeTransform {
     }
     if (this.contributors.has(player.destinyUserInfo.membershipId)) {
       return 'Contributor'
+    }
+    if (this.bdgf.has(player.destinyUserInfo.membershipId)) {
+      return 'Bungie Day'
     }
     if (this.sponsors.has(player.destinyUserInfo.membershipId)) {
       return 'Sponsor'

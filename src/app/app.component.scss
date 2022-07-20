@@ -60,8 +60,19 @@
   height: 1em;
   line-height: 1em;
   margin: 0.25em 0.75em;
-  text-shadow: 1px 1px #563467;
+  text-shadow: 1px 1px 1px darken(#b798c9, 50%);
+  box-shadow: 1px 1px 1px darken(#b798c9, 50%);
   cursor: default;
+
+  &.Bungie.Day {
+    background: #7ecbe8;
+    text-shadow: 1px 1px 1px darken(#7ecbe8, 50%);
+    box-shadow: 1px 1px 1px darken(#7ecbe8, 50%);
+
+    &::after {
+      content: ' ❤';
+    }
+  }
 }
 
 .xbox-embed {
